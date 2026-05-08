@@ -272,6 +272,96 @@
       display: block;
     }
 
+    /* ===== NAVIGATION CONTROLS ===== */
+    .nav-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: grid;
+      grid-template-areas:
+        ". up ."
+        "left reset right"
+        ". down .";
+      grid-template-columns: 52px 52px 52px;
+      grid-template-rows: 52px 52px 52px;
+      gap: 6px;
+    }
+
+    .nav-btn {
+      width: 52px;
+      height: 52px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(0,240,255,0.5);
+      border-radius: 12px;
+      color: var(--accent);
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+      user-select: none;
+      -webkit-user-select: none;
+      backdrop-filter: blur(6px);
+    }
+
+    .nav-btn:hover { background: rgba(0,240,255,0.2); }
+    .nav-btn:active { transform: scale(0.9); background: rgba(0,240,255,0.35); }
+
+    .nav-btn.up    { grid-area: up; }
+    .nav-btn.left  { grid-area: left; }
+    .nav-btn.reset { grid-area: reset; font-size: 1rem; }
+    .nav-btn.right { grid-area: right; }
+    .nav-btn.down  { grid-area: down; }
+
+    /* Zoom controls on the right side */
+    .zoom-controls {
+      position: absolute;
+      bottom: 20px;
+      right: 16px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .zoom-btn {
+      width: 44px;
+      height: 44px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(123,47,255,0.5);
+      border-radius: 10px;
+      color: var(--accent2);
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+      backdrop-filter: blur(6px);
+    }
+
+    .zoom-btn:hover { background: rgba(123,47,255,0.25); }
+    .zoom-btn:active { transform: scale(0.9); }
+
+    /* Controls hint */
+    .controls-hint {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(0,240,255,0.2);
+      border-radius: 10px;
+      padding: 6px 12px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.6);
+      z-index: 20;
+      line-height: 1.6;
+      pointer-events: none;
+    }
+
     /* ===== QUANTUM SUPERPOSITION VIEW ===== */
     .superposition-section {
       padding: 60px 20px;
@@ -559,6 +649,27 @@
         src="https://antimatter15.com/splat/?url=garden.splat"
         allowfullscreen
       ></iframe>
+
+      <!-- Controls hint -->
+      <div class="controls-hint">
+        🖱️ Arrastrar: rotar &nbsp;|&nbsp; Scroll: zoom<br>
+        ⌨️ WASD / flechas: mover
+      </div>
+
+      <!-- Arrow navigation controls -->
+      <div class="nav-controls" id="nav-controls">
+        <button class="nav-btn up"    onmousedown="startKey('ArrowUp')"    onmouseup="stopKey()" ontouchstart="startKey('ArrowUp')" ontouchend="stopKey()" title="Arriba">▲</button>
+        <button class="nav-btn left"  onmousedown="startKey('ArrowLeft')"  onmouseup="stopKey()" ontouchstart="startKey('ArrowLeft')" ontouchend="stopKey()" title="Izquierda">◀</button>
+        <button class="nav-btn reset" onmousedown="startKey('r')"          onmouseup="stopKey()" ontouchstart="startKey('r')" ontouchend="stopKey()" title="Reset">⟳</button>
+        <button class="nav-btn right" onmousedown="startKey('ArrowRight')" onmouseup="stopKey()" ontouchstart="startKey('ArrowRight')" ontouchend="stopKey()" title="Derecha">▶</button>
+        <button class="nav-btn down"  onmousedown="startKey('ArrowDown')"  onmouseup="stopKey()" ontouchstart="startKey('ArrowDown')" ontouchend="stopKey()" title="Abajo">▼</button>
+      </div>
+
+      <!-- Zoom controls -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" onmousedown="startKey('+')" onmouseup="stopKey()" ontouchstart="startKey('+')" ontouchend="stopKey()" title="Acercar">＋</button>
+        <button class="zoom-btn" onmousedown="startKey('-')" onmouseup="stopKey()" ontouchstart="startKey('-')" ontouchend="stopKey()" title="Alejar">－</button>
+      </div>
     </div>
   </section>
 
@@ -757,6 +868,72 @@
       } else {
         info.innerHTML = `Superposición: <strong>Día ${dayPct}%</strong> + <strong>Noche ${nightPct}%</strong> — estado cuántico activo ⚛`;
       }
+    }
+
+    // ===== NAVIGATION CONTROLS =====
+    let keyInterval = null;
+    const iframe = document.getElementById('splat-iframe');
+
+    function fireKey(key) {
+      // Focus iframe first, then dispatch key events to it
+      iframe.focus();
+      const eventOptions = {
+        key: key,
+        code: key === 'ArrowUp' ? 'ArrowUp' :
+              key === 'ArrowDown' ? 'ArrowDown' :
+              key === 'ArrowLeft' ? 'ArrowLeft' :
+              key === 'ArrowRight' ? 'ArrowRight' :
+              key === '+' ? 'Equal' :
+              key === '-' ? 'Minus' :
+              key === 'r' ? 'KeyR' : 'Space',
+        bubbles: true,
+        cancelable: true
+      };
+      try {
+        iframe.contentWindow.dispatchEvent(new KeyboardEvent('keydown', eventOptions));
+        iframe.contentWindow.dispatchEvent(new KeyboardEvent('keyup', eventOptions));
+      } catch(e) {
+        // Cross-origin fallback: simulate mouse drag on the iframe
+        simulateDrag(key);
+      }
+    }
+
+    function simulateDrag(key) {
+      const rect = iframe.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const step = 18;
+      let dx = 0, dy = 0;
+
+      if (key === 'ArrowUp')    dy = -step;
+      if (key === 'ArrowDown')  dy =  step;
+      if (key === 'ArrowLeft')  dx = -step;
+      if (key === 'ArrowRight') dx =  step;
+
+      if (key === '+') {
+        iframe.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true, cancelable: true }));
+        return;
+      }
+      if (key === '-') {
+        iframe.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
+        return;
+      }
+
+      // Simulate mousedown → mousemove → mouseup on the iframe element
+      const opts = { bubbles: true, cancelable: true };
+      iframe.dispatchEvent(new MouseEvent('mousedown', { ...opts, clientX: cx, clientY: cy, button: 0 }));
+      iframe.dispatchEvent(new MouseEvent('mousemove', { ...opts, clientX: cx + dx, clientY: cy + dy }));
+      iframe.dispatchEvent(new MouseEvent('mouseup',   { ...opts, clientX: cx + dx, clientY: cy + dy }));
+    }
+
+    function startKey(key) {
+      fireKey(key);
+      keyInterval = setInterval(() => fireKey(key), 80);
+    }
+
+    function stopKey() {
+      clearInterval(keyInterval);
+      keyInterval = null;
     }
 
     // ===== CONTACT FORM =====
