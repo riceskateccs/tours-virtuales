@@ -4,447 +4,107 @@ Copy
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Tour Virtual 3D</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0a0a0a; color: white; font-family: sans-serif; }
-    #app { width: 100vw; height: 100vh; position: relative; }
-    canvas { width: 100% !important; height: 100% !important; }
-    #ui {
-      position: absolute; top: 20px; left: 20px;
-      background: rgba(0,0,0,0.6); padding: 16px;
-      border-radius: 12px; backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    #ui h2 { font-size: 14px; margin-bottom: 8px; color: #a78bfa; }
-    #ui p  { font-size: 12px; color: #9ca3af; }
-    #upload-btn {
-      position: absolute; bottom: 30px; left: 50%;
-      transform: translateX(-50%);
-      background: #7c3aed; color: white;
-      border: none; padding: 12px 28px;
-      border-radius: 999px; cursor: pointer;
-      font-size: 14px; font-weight: 600;
-    }
-    #upload-btn:hover { background: #6d28d9; }
-    #file-input { display: none; }
-    #loading {
-      display: none; position: absolute;
-      top: 50%; left: 50%; transform: translate(-50%,-50%);
-      background: rgba(0,0,0,0.8); padding: 24px 40px;
-      border-radius: 16px; text-align: center;
-    }
-  </style>
-</head>
-<body>
-<div id="app">
-  <canvas id="canvas"></canvas>
-
-  <div id="ui">
-    <h2>🏠 Tour Virtual 3D</h2>
-    <p>🖱️ Click + arrastrar → rotar</p>
-    <p>🖱️ Scroll → zoom</p>
-    <p>🖱️ Click derecho → mover</p>
-  </div>
-
-  <div id="loading">
-    <div style="font-size:32px;margin-bottom:12px">⚡</div>
-    <div>Cargando escaneo...</div>
-  </div>
-
-  <input type="file" id="file-input" accept=".splat,.ply">
-  <button id="upload-btn" onclick="document.getElementById('file-input').click()">
-    📂 Cargar archivo .splat
-  </button>
-</div>
-
-<!-- PlayCanvas Engine -->
-<script src="https://cdn.jsdelivr.net/npm/playcanvas@1.70.0/build/playcanvas.min.js"></script>
-
-<script>
-// ── Inicializar PlayCanvas ──────────────────────────────────────────
-const canvas = document.getElementById('canvas');
-const app = new pc.Application(canvas, {
-  mouse: new pc.Mouse(canvas),
-  touch: new pc.TouchDevice(canvas),
-  keyboard: new pc.Keyboard(window)
-});
-
-app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
-app.setCanvasResolution(pc.RESOLUTION_AUTO);
-app.start();
-
-// ── Cámara ─────────────────────────────────────────────────────────
-const cameraEntity = new pc.Entity('camera');
-cameraEntity.addComponent('camera', { clearColor: new pc.Color(0.05, 0.05, 0.05) });
-cameraEntity.setPosition(0, 0, 5);
-app.root.addChild(cameraEntity);
-
-// ── Luz ────────────────────────────────────────────────────────────
-const light = new pc.Entity('light');
-light.addComponent('light', { type: 'directional', intensity: 1.5 });
-light.setEulerAngles(45, 30, 0);
-app.root.addChild(light);
-
-// ── Orbit Camera (control con mouse) ──────────────────────────────
-let isDragging = false, isRightDrag = false;
-let lastX = 0, lastY = 0;
-let yaw = 0, pitch = 20, distance = 5;
-let targetX = 0, targetY = 0;
-
-canvas.addEventListener('mousedown', e => {
-  isDragging = true;
-  isRightDrag = e.button === 2;
-  lastX = e.clientX; lastY = e.clientY;
-});
-canvas.addEventListener('contextmenu', e => e.preventDefault());
-window.addEventListener('mouseup', () => isDragging = false);
-window.addEventListener('mousemove', e => {
-  if (!isDragging) return;
-  const dx = e.clientX - lastX, dy = e.clientY - lastY;
-  lastX = e.clientX; lastY = e.clientY;
-  if (isRightDrag) {
-    targetX -= dx * 0.005 * distance;
-    targetY += dy * 0.005 * distance;
-  } else {
-    yaw   -= dx * 0.3;
-    pitch -= dy * 0.3;
-    pitch  = Math.max(-89, Math.min(89, pitch));
-  }
-});
-canvas.addEventListener('wheel', e => {
-  distance *= 1 + e.deltaY * 0.001;
-  distance = Math.max(0.5, Math.min(50, distance));
-});
-
-// ── Update loop ────────────────────────────────────────────────────
-app.on('update', () => {
-  const rad = Math.PI / 180;
-  const x = targetX + distance * Math.sin(yaw * rad) * Math.cos(pitch * rad);
-  const y = targetY + distance * Math.sin(pitch * rad);
-  const z = targetX + distance * Math.cos(yaw * rad) * Math.cos(pitch * rad);
-  // Nota: z usa targetX como base — corrección:
-  const cx = targetX + distance * Math.sin(yaw * rad) * Math.cos(pitch * rad);
-  const cy = targetY + distance * Math.sin(pitch * rad);
-  const cz = distance * Math.cos(yaw * rad) * Math.cos(pitch * rad);
-  cameraEntity.setPosition(cx, cy, cz);
-  cameraEntity.lookAt(targetX, targetY, 0);
-});
-
-// ── Cargar .splat ──────────────────────────────────────────────────
-// PlayCanvas soporta Gaussian Splatting desde v1.70+
-// Usamos el asset system nativo
-
-let splatEntity = null;
-
-document.getElementById('file-input').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  document.getElementById('loading').style.display = 'block';
-
-  const url = URL.createObjectURL(file);
-
-  // Eliminar escaneo anterior
-  if (splatEntity) { splatEntity.destroy(); splatEntity = null; }
-
-  // Crear asset y cargar
-  const asset = new pc.Asset(file.name, 'gsplat', { url });
-  app.assets.add(asset);
-  app.assets.load(asset);
-
-  asset.on('load', () => {
-    document.getElementById('loading').style.display = 'none';
-
-    splatEntity = new pc.Entity('splat');
-    splatEntity.addComponent('gsplat', { asset });
-    app.root.addChild(splatEntity);
-
-    // Resetear cámara
-    distance = 5; yaw = 0; pitch = 20;
-    targetX = 0; targetY = 0;
-  });
-
-  asset.on('error', (err) => {
-    document.getElementById('loading').style.display = 'none';
-    alert('Error cargando el archivo: ' + err);
-  });
-});
-
-// ── Demo: mostrar cubo si no hay splat ────────────────────────────
-const box = new pc.Entity('demo');
-box.addComponent('model', { type: 'box' });
-box.addComponent('script');
-const mat = new pc.StandardMaterial();
-mat.diffuse = new pc.Color(0.4, 0.2, 0.8);
-mat.update();
-box.model.meshInstances[0].material = mat;
-app.root.addChild(box);
-
-app.on('update', dt => {
-  if (!splatEntity) box.rotate(0, 30 * dt, 0);
-  else box.enabled = false;
-});
-
-window.addEventListener('resize', () => app.resizeCanvas());
-</script>
-</body>
-</html>
-¿Cómo usarlo?
-Guarda el código como index.html
-Ábrelo en Chrome/Edge (necesita WebGL2)
-Sin splat propio? Descarga uno de prueba gratis: polycam.io/explore o antimatter15/splat tiene demos
-Próximos pasos
-¿Quieres que armemos ahora:
-
-A) El backend de procesamiento (Python + COLMAP + nerfstudio en RunPod)
-B) La landing page con formulario para que agentes suban sus videos
-C) Sistema de links únicos por propiedad
-Credits Used: 96,74
-
-quiero acotyar que no tengo ni idea de programacion yo te dare las ideas y tu lo ejecutas siempre diciendome pado a paso como tengo que ejecutarlo
-
-Claude Sonnet 4.6
-Perfecto, ese es exactamente mi rol aquí. 🤝
-
-Tú = ideas y decisiones
-Yo = código + instrucciones paso a paso
-
-Nunca voy a asumir que sabes programar. Cada vez que haya algo que hacer, te diré exactamente:
-
-Qué programa abrir
-Qué copiar y dónde pegarlo
-Qué botón clickear
-Qué debería pasar en pantalla
-Antes de seguir, necesito saber desde dónde estás trabajando para darte las instrucciones correctas:
-
-🪟 Windows
-🍎 Mac
-🐧 Linux
-¿Y tienes cuenta en alguno de estos? (no es obligatorio, solo para elegir el camino más fácil):
-
- GitHub
- Vercel / Netlify
- Ninguno todavía
-Credits Used: 26,75
-
-windows , github
-
-Claude Sonnet 4.6
-Perfecto. Entonces el camino más fácil para ti es:
-
-GitHub → Vercel (tu sitio online en 10 minutos, gratis)
-
-🗺️ Plan completo — 3 fases
-Fase 1 — Hoy: Visor funcionando online (puedes compartir el link)
-Fase 2 — Semana 1: Subida de archivos + links únicos por propiedad
-Fase 3 — Semana 2: Backend de procesamiento automático
-
-🚀 Empezamos — Fase 1, Paso 1
-Instala VS Code (el bloc de notas para programadores)
-
-Ve a 👉 code.visualstudio.com
-Click en el botón azul "Download for Windows"
-Abre el instalador y dale Next → Next → Install (todo por defecto)
-Dime cuando lo tengas instalado y te doy el Paso 2. ✅
-
-Credits Used: 44,64
-
-listo
-
-Claude Sonnet 4.6
-Paso 2 — Crear la carpeta del proyecto
-Abre VS Code (el icono azul que acabas de instalar)
-En el menú de arriba click en File → Open Folder
-Navega al Escritorio
-Click en New Folder (o botón derecho → Nueva carpeta)
-Nómbrala tours-virtuales
-Click en Select Folder
-VS Code debería abrirse con esa carpeta vacía en el panel izquierdo.
-
-Dime cuando lo veas ✅
-
-Credits Used: 10,73
-
-listo
-
-Claude Sonnet 4.6
-Paso 3 — Crear el archivo principal
-En VS Code, en el panel izquierdo verás el nombre TOURS-VIRTUALES
-Pasa el mouse por encima y aparecerán unos iconos — click en el 📄 icono de nuevo archivo (el primero)
-Escribe exactamente: index.html y presiona Enter
-Se abrirá un archivo en blanco en el centro.
-
-Copia todo el código de abajo (click en el código, luego Ctrl+A para seleccionar todo, Ctrl+C para copiar):
-html
-Copy
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tours Virtuales 3D</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0a0a0a; color: white; font-family: sans-serif; overflow: hidden; }
-    #app { width: 100vw; height: 100vh; position: relative; }
-    canvas { width: 100% !important; height: 100% !important; display: block; }
+    canvas { width: 100vw !important; height: 100vh !important; display: block; }
     #ui {
-      position: absolute; top: 20px; left: 20px;
+      position: fixed; top: 20px; left: 20px;
       background: rgba(0,0,0,0.6); padding: 16px;
       border-radius: 12px; backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1); min-width: 180px;
+      border: 1px solid rgba(255,255,255,0.1); z-index: 10;
     }
     #ui h2 { font-size: 15px; margin-bottom: 10px; color: #a78bfa; }
     #ui p  { font-size: 12px; color: #9ca3af; margin-bottom: 4px; }
     #upload-btn {
-      position: absolute; bottom: 30px; left: 50%;
+      position: fixed; bottom: 30px; left: 50%;
       transform: translateX(-50%);
       background: #7c3aed; color: white;
       border: none; padding: 14px 32px;
       border-radius: 999px; cursor: pointer;
       font-size: 15px; font-weight: 600;
       box-shadow: 0 0 30px rgba(124,58,237,0.5);
+      z-index: 10;
     }
-    #upload-btn:hover { background: #6d28d9; transform: translateX(-50%) scale(1.05); }
+    #upload-btn:hover { background: #6d28d9; }
     #file-input { display: none; }
     #loading {
-      display: none; position: absolute;
+      display: none; position: fixed;
       top: 50%; left: 50%; transform: translate(-50%,-50%);
       background: rgba(0,0,0,0.85); padding: 32px 48px;
       border-radius: 16px; text-align: center;
-      border: 1px solid rgba(124,58,237,0.4);
+      border: 1px solid rgba(124,58,237,0.4); z-index: 20;
     }
-    #loading .spinner {
+    .spinner {
       width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
       border-top-color: #a78bfa; border-radius: 50%;
       animation: spin 0.8s linear infinite; margin: 0 auto 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #demo-label {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      color: rgba(255,255,255,0.15); font-size: 13px;
-      pointer-events: none; text-align: center;
+    #hint {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      color: rgba(255,255,255,0.2); font-size: 14px;
+      text-align: center; pointer-events: none; z-index: 5;
     }
   </style>
 </head>
 <body>
-<div id="app">
-  <canvas id="canvas"></canvas>
 
-  <div id="ui">
-    <h2>🏠 Tour Virtual 3D</h2>
-    <p>🖱️ Arrastrar → rotar</p>
-    <p>🖱️ Scroll → zoom</p>
-    <p>🖱️ Clic derecho → mover</p>
-  </div>
-
-  <div id="demo-label">
-    Carga un archivo .splat para ver tu propiedad
-  </div>
-
-  <div id="loading">
-    <div class="spinner"></div>
-    <div>Cargando escaneo 3D...</div>
-  </div>
-
-  <input type="file" id="file-input" accept=".splat,.ply">
-  <button id="upload-btn" onclick="document.getElementById('file-input').click()">
-    📂 Cargar archivo .splat
-  </button>
+<div id="ui">
+  <h2>🏠 Tour Virtual 3D</h2>
+  <p>🖱️ Arrastrar → rotar</p>
+  <p>🖱️ Scroll → zoom</p>
+  <p>🖱️ Clic derecho → mover</p>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/playcanvas@1.70.0/build/playcanvas.min.js"></script>
-<script>
-const canvas = document.getElementById('canvas');
-const app = new pc.Application(canvas, {
-  mouse: new pc.Mouse(canvas),
-  touch: new pc.TouchDevice(canvas),
-  keyboard: new pc.Keyboard(window)
-});
-app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
-app.setCanvasResolution(pc.RESOLUTION_AUTO);
-app.start();
+<div id="hint">Carga un archivo .splat para ver tu propiedad</div>
 
-const cameraEntity = new pc.Entity('camera');
-cameraEntity.addComponent('camera', { clearColor: new pc.Color(0.05, 0.05, 0.08) });
-cameraEntity.setPosition(0, 0, 5);
-app.root.addChild(cameraEntity);
+<div id="loading">
+  <div class="spinner"></div>
+  <div>Cargando escaneo 3D...</div>
+</div>
 
-const light = new pc.Entity('light');
-light.addComponent('light', { type: 'directional', intensity: 1.5 });
-light.setEulerAngles(45, 30, 0);
-app.root.addChild(light);
+<input type="file" id="file-input" accept=".splat,.ply">
+<button id="upload-btn" onclick="document.getElementById('file-input').click()">
+  📂 Cargar archivo .splat
+</button>
 
-let isDragging = false, isRightDrag = false;
-let lastX = 0, lastY = 0;
-let yaw = 0, pitch = 20, distance = 5;
-let targetX = 0, targetY = 0;
+<script type="module">
+import * as GaussianSplats3D from 'https://cdn.jsdelivr.net/npm/@mkkellogg/gaussian-splats-3d@0.4.1/build/gaussian-splats-3d.module.js';
 
-canvas.addEventListener('mousedown', e => {
-  isDragging = true; isRightDrag = e.button === 2;
-  lastX = e.clientX; lastY = e.clientY;
-});
-canvas.addEventListener('contextmenu', e => e.preventDefault());
-window.addEventListener('mouseup', () => isDragging = false);
-window.addEventListener('mousemove', e => {
-  if (!isDragging) return;
-  const dx = e.clientX - lastX, dy = e.clientY - lastY;
-  lastX = e.clientX; lastY = e.clientY;
-  if (isRightDrag) { targetX -= dx * 0.005 * distance; targetY += dy * 0.005 * distance; }
-  else { yaw -= dx * 0.3; pitch -= dy * 0.3; pitch = Math.max(-89, Math.min(89, pitch)); }
-});
-canvas.addEventListener('wheel', e => {
-  distance *= 1 + e.deltaY * 0.001;
-  distance = Math.max(0.5, Math.min(50, distance));
-});
-
-const box = new pc.Entity('demo');
-box.addComponent('model', { type: 'box' });
-const mat = new pc.StandardMaterial();
-mat.diffuse = new pc.Color(0.4, 0.2, 0.8);
-mat.update();
-box.model.meshInstances[0].material = mat;
-app.root.addChild(box);
-
-let splatEntity = null;
-
-app.on('update', dt => {
-  const rad = Math.PI / 180;
-  const cx = targetX + distance * Math.sin(yaw * rad) * Math.cos(pitch * rad);
-  const cy = targetY + distance * Math.sin(pitch * rad);
-  const cz = distance * Math.cos(yaw * rad) * Math.cos(pitch * rad);
-  cameraEntity.setPosition(cx, cy, cz);
-  cameraEntity.lookAt(targetX, targetY, 0);
-  if (!splatEntity) box.rotate(0, 30 * dt, 0);
+const viewer = new GaussianSplats3D.Viewer({
+  cameraUp: [0, -1, 0],
+  initialCameraPosition: [0, 0, 5],
+  initialCameraLookAt: [0, 0, 0],
+  rootElement: document.body,
+  selfDrivenMode: true
 });
 
 document.getElementById('file-input').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('demo-label').style.display = 'none';
-  const url = URL.createObjectURL(file);
-  if (splatEntity) { splatEntity.destroy(); splatEntity = null; }
-  box.enabled = false;
-  const asset = new pc.Asset(file.name, 'gsplat', { url });
-  app.assets.add(asset);
-  app.assets.load(asset);
-  asset.on('load', () => {
-    document.getElementById('loading').style.display = 'none';
-    splatEntity = new pc.Entity('splat');
-    splatEntity.addComponent('gsplat', { asset });
-    app.root.addChild(splatEntity);
-    distance = 5; yaw = 0; pitch = 20; targetX = 0; targetY = 0;
-  });
-  asset.on('error', () => {
-    document.getElementById('loading').style.display = 'none';
-    alert('Error al cargar. Asegúrate que el archivo es .splat válido.');
-  });
-});
 
-window.addEventListener('resize', () => app.resizeCanvas());
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('hint').style.display = 'none';
+
+  const url = URL.createObjectURL(file);
+
+  try {
+    await viewer.addSplatScene(url, {
+      splatAlphaRemovalThreshold: 5,
+      showLoadingUI: false
+    });
+    viewer.start();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('upload-btn').style.display = 'none';
+  } catch(err) {
+    document.getElementById('loading').style.display = 'none';
+    alert('Error: ' + err.message);
+  }
+});
 </script>
 </body>
 </html>
