@@ -1,280 +1,772 @@
-html
-Copy
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VistaReal — Tours Virtuales 3D</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --purple: #7c3aed;
-      --purple-light: #a78bfa;
-      --dark: #0a0a0f;
-      --card: #13131a;
-      --border: rgba(255,255,255,0.08);
+      --primary: #0a0a1a;
+      --accent: #00f0ff;
+      --accent2: #7b2fff;
+      --text: #e0e0ff;
     }
-    body { background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
-    a { text-decoration: none; color: inherit; }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--primary);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ===== WAVE FUNCTION COLLAPSE LOADING ===== */
+    #quantum-loader {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s ease;
+    }
+
+    #quantum-loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .wfc-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 360px;
+      height: 240px;
+      gap: 2px;
+      margin-bottom: 24px;
+    }
+
+    .wfc-cell {
+      background: #111;
+      border-radius: 2px;
+      animation: collapse 0.05s forwards;
+      opacity: 0;
+    }
+
+    @keyframes collapse {
+      0%   { opacity: 0; transform: scale(0.5); background: #fff; }
+      50%  { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .loader-text {
+      color: var(--accent);
+      font-size: 1.1rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ===== NAVBAR ===== */
     nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 20px 60px;
-      background: rgba(10,10,15,0.85); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 40px;
+      background: rgba(10,10,26,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,240,255,0.15);
     }
-    .logo { font-size: 22px; font-weight: 700; color: var(--purple-light); }
-    .logo span { color: white; }
-    nav ul { list-style: none; display: flex; gap: 32px; }
-    nav ul a { font-size: 14px; color: rgba(255,255,255,0.6); transition: color 0.2s; }
-    nav ul a:hover { color: white; }
-    .nav-cta {
-      background: var(--purple); color: white;
-      padding: 10px 24px; border-radius: 999px;
-      font-size: 14px; font-weight: 600;
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
     }
+
+    .nav-links a {
+      color: var(--text);
+      text-decoration: none;
+      margin-left: 28px;
+      font-size: 0.9rem;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .nav-links a:hover { opacity: 1; color: var(--accent); }
+
+    /* ===== HERO ===== */
     .hero {
-      min-height: 100vh; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 120px 20px 80px;
-      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, transparent 70%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 100px 20px 60px;
+      background: radial-gradient(ellipse at 50% 40%, rgba(123,47,255,0.18) 0%, transparent 70%);
     }
-    .badge {
-      display: inline-block; background: rgba(124,58,237,0.2);
-      border: 1px solid rgba(124,58,237,0.4);
-      color: var(--purple-light); padding: 6px 16px;
-      border-radius: 999px; font-size: 13px; margin-bottom: 24px;
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    .hero h1 { font-size: clamp(36px, 6vw, 72px); font-weight: 800; line-height: 1.1; margin-bottom: 24px; max-width: 800px; }
-    .hero h1 span { color: var(--purple-light); }
-    .hero p { font-size: 18px; color: rgba(255,255,255,0.6); max-width: 520px; line-height: 1.6; margin-bottom: 40px; }
-    .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+
+    .hero p {
+      font-size: 1.2rem;
+      opacity: 0.75;
+      max-width: 600px;
+      margin-bottom: 40px;
+      line-height: 1.7;
+    }
+
     .btn-primary {
-      background: var(--purple); color: white;
-      padding: 16px 36px; border-radius: 999px;
-      font-size: 16px; font-weight: 600;
-      box-shadow: 0 0 40px rgba(124,58,237,0.4);
-      transition: all 0.2s; cursor: pointer; border: none;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #fff;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 30px rgba(0,240,255,0.3);
     }
-    .btn-primary:hover { background: #6d28d9; transform: translateY(-2px); }
-    .btn-secondary {
-      background: transparent; color: white;
-      padding: 16px 36px; border-radius: 999px;
-      font-size: 16px; font-weight: 600;
-      border: 1px solid var(--border); transition: all 0.2s;
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 50px rgba(0,240,255,0.5);
     }
-    .stats {
-      display: flex; justify-content: center; gap: 60px;
-      flex-wrap: wrap; padding: 60px 20px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
+
+    /* ===== VIEWER SECTION ===== */
+    .viewer-section {
+      padding: 80px 20px;
+      text-align: center;
     }
-    .stat { text-align: center; }
-    .stat .num { font-size: 40px; font-weight: 800; color: var(--purple-light); }
-    .stat .label { font-size: 14px; color: rgba(255,255,255,0.5); margin-top: 4px; }
-    #visor-section { padding: 80px 20px; text-align: center; background: var(--card); }
-    .section-label { color: var(--purple-light); font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
-    .section-title { font-size: clamp(28px, 4vw, 48px); font-weight: 800; margin-bottom: 16px; }
-    .section-sub { color: rgba(255,255,255,0.5); font-size: 16px; margin-bottom: 40px; }
-    #viewer-wrap {
-      width: 100%; max-width: 900px; height: 520px;
-      margin: 0 auto; border-radius: 16px; overflow: hidden;
-      border: 1px solid var(--border); position: relative;
-      background: #0a0a0a;
+
+    .viewer-section h2 {
+      font-size: 2rem;
+      margin-bottom: 12px;
+      color: var(--accent);
     }
-    #viewer-wrap iframe {
-      width: 100%; height: 100%; border: none;
+
+    .viewer-section p {
+      opacity: 0.7;
+      margin-bottom: 30px;
     }
-    #overlay {
-      position: absolute; inset: 0; display: flex;
-      flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px; z-index: 5; background: #0a0a0a;
+
+    /* ===== QUANTUM TUNNELING DOORS ===== */
+    .scene-selector {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
     }
-    #overlay p { color: rgba(255,255,255,0.5); font-size: 14px; max-width: 340px; line-height: 1.6; }
-    .btn-upload {
-      background: var(--purple); color: white;
-      padding: 14px 32px; border-radius: 999px;
-      font-size: 15px; font-weight: 600; cursor: pointer; border: none;
-      box-shadow: 0 0 30px rgba(124,58,237,0.4);
+
+    .scene-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(0,240,255,0.3);
+      color: var(--text);
+      padding: 10px 22px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
     }
-    .hint { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 8px; }
-    #servicios { padding: 100px 20px; text-align: center; }
-    .cards { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 48px; max-width: 1000px; margin-left: auto; margin-right: auto; }
+
+    .scene-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .scene-btn:hover::before, .scene-btn.active::before { opacity: 0.2; }
+
+    .scene-btn span { position: relative; z-index: 1; }
+
+    /* Tunnel animation */
+    .tunnel-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, var(--accent2) 0%, transparent 70%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.3s;
+      border-radius: 16px;
+    }
+
+    .tunnel-overlay.active { opacity: 0.6; }
+
+    /* ===== VIEWER WRAPPER ===== */
+    .viewer-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0,240,255,0.2);
+      box-shadow: 0 0 60px rgba(0,240,255,0.1);
+    }
+
+    /* ===== HEISENBERG MODE ===== */
+    .heisenberg-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      backdrop-filter: blur(0px);
+      transition: backdrop-filter 0.1s;
+      border-radius: 16px;
+    }
+
+    .heisenberg-label {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid var(--accent2);
+      color: var(--accent2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .heisenberg-label.visible { opacity: 1; }
+
+    #splat-iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+      display: block;
+    }
+
+    /* ===== QUANTUM SUPERPOSITION VIEW ===== */
+    .superposition-section {
+      padding: 60px 20px;
+      text-align: center;
+      background: rgba(123,47,255,0.05);
+    }
+
+    .superposition-section h2 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+      color: var(--accent2);
+    }
+
+    .superposition-section p {
+      opacity: 0.7;
+      margin-bottom: 30px;
+    }
+
+    .superposition-slider-wrap {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .state-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+
+    #superposition-slider {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      outline: none;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    #superposition-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 10px var(--accent);
+      cursor: pointer;
+    }
+
+    .superposition-display {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0,240,255,0.2);
+    }
+
+    .superposition-display iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    #splat-day { z-index: 2; }
+    #splat-night {
+      z-index: 1;
+      filter: hue-rotate(200deg) brightness(0.4) saturate(2);
+    }
+
+    .superposition-info {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      opacity: 0.6;
+      font-style: italic;
+    }
+
+    /* ===== SERVICES ===== */
+    .services {
+      padding: 80px 20px;
+      text-align: center;
+    }
+
+    .services h2 {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    .services > p {
+      opacity: 0.7;
+      margin-bottom: 50px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
     .card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 32px; flex: 1; min-width: 220px; max-width: 280px;
-      transition: border-color 0.2s, transform 0.2s;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(0,240,255,0.12);
+      border-radius: 16px;
+      padding: 36px 28px;
+      transition: transform 0.3s, border-color 0.3s;
     }
-    .card:hover { border-color: var(--purple); transform: translateY(-4px); }
-    .card .icon { font-size: 36px; margin-bottom: 16px; }
-    .card h3 { font-size: 18px; margin-bottom: 8px; }
-    .card p { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; }
-    #precios { padding: 100px 20px; text-align: center; background: var(--card); }
-    .pricing-cards { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 48px; }
+
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(0,240,255,0.4);
+    }
+
+    .card-icon { font-size: 2.5rem; margin-bottom: 16px; }
+    .card h3 { font-size: 1.2rem; margin-bottom: 10px; color: var(--accent); }
+    .card p { opacity: 0.7; font-size: 0.95rem; line-height: 1.6; }
+
+    /* ===== PRICING ===== */
+    .pricing {
+      padding: 80px 20px;
+      text-align: center;
+      background: rgba(0,240,255,0.03);
+    }
+
+    .pricing h2 { font-size: 2rem; margin-bottom: 12px; }
+    .pricing > p { opacity: 0.7; margin-bottom: 50px; }
+
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
     .price-card {
-      background: var(--dark); border: 1px solid var(--border);
-      border-radius: 16px; padding: 36px 32px; min-width: 220px;
-      transition: all 0.2s; position: relative;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 40px 28px;
+      transition: transform 0.3s;
     }
-    .price-card.featured { border-color: var(--purple); box-shadow: 0 0 40px rgba(124,58,237,0.2); }
-    .price-card .tag {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-      background: var(--purple); color: white; padding: 4px 16px;
-      border-radius: 999px; font-size: 12px; font-weight: 600;
+
+    .price-card.featured {
+      border-color: var(--accent);
+      background: rgba(0,240,255,0.06);
+      transform: scale(1.05);
     }
-    .price-card h3 { font-size: 16px; color: rgba(255,255,255,0.6); margin-bottom: 16px; }
-    .price-card .price { font-size: 48px; font-weight: 800; }
-    .price-card .price span { font-size: 18px; color: rgba(255,255,255,0.4); }
-    .price-card ul { list-style: none; margin: 24px 0; text-align: left; }
-    .price-card ul li { font-size: 14px; color: rgba(255,255,255,0.6); padding: 6px 0; }
-    .price-card ul li::before { content: "✓ "; color: var(--purple-light); }
-    #contacto { padding: 100px 20px; text-align: center; }
-    form { max-width: 520px; margin: 48px auto 0; display: flex; flex-direction: column; gap: 16px; }
-    input, textarea, select {
-      background: var(--card); border: 1px solid var(--border);
-      color: white; padding: 14px 18px; border-radius: 10px;
-      font-size: 15px; outline: none; transition: border-color 0.2s; font-family: inherit;
+
+    .price-card:hover { transform: translateY(-6px) scale(1.02); }
+    .price-card.featured:hover { transform: translateY(-6px) scale(1.07); }
+
+    .price-card h3 { font-size: 1.1rem; margin-bottom: 8px; opacity: 0.8; }
+
+    .price {
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: var(--accent);
+      margin: 12px 0;
     }
-    input:focus, textarea:focus, select:focus { border-color: var(--purple); }
-    textarea { resize: vertical; min-height: 120px; }
-    select option { background: var(--card); }
-    .btn-submit {
-      background: var(--purple); color: white;
-      padding: 16px; border-radius: 999px;
-      font-size: 16px; font-weight: 600; cursor: pointer; border: none;
+
+    .price span { font-size: 1rem; opacity: 0.6; }
+
+    .price-card ul {
+      list-style: none;
+      margin: 20px 0 28px;
+      text-align: left;
     }
-    #form-success { display: none; color: var(--purple-light); font-size: 16px; margin-top: 16px; }
+
+    .price-card ul li {
+      padding: 6px 0;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .price-card ul li::before { content: "✓ "; color: var(--accent); }
+
+    /* ===== CONTACT ===== */
+    .contact {
+      padding: 80px 20px;
+      text-align: center;
+    }
+
+    .contact h2 { font-size: 2rem; margin-bottom: 12px; }
+    .contact p { opacity: 0.7; margin-bottom: 40px; }
+
+    .contact-form {
+      max-width: 500px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .contact-form input,
+    .contact-form textarea {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(0,240,255,0.2);
+      border-radius: 10px;
+      padding: 14px 18px;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .contact-form input:focus,
+    .contact-form textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .contact-form textarea { height: 120px; resize: vertical; }
+
+    /* ===== FOOTER ===== */
     footer {
-      padding: 40px 60px; border-top: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+      padding: 30px 40px;
+      text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      opacity: 0.5;
+      font-size: 0.85rem;
     }
-    footer p { font-size: 13px; color: rgba(255,255,255,0.3); }
   </style>
 </head>
 <body>
 
-<nav>
-  <div class="logo">Vista<span>Real</span></div>
-  <ul>
-    <li><a href="#visor-section">Demo</a></li>
-    <li><a href="#servicios">Servicios</a></li>
-    <li><a href="#precios">Precios</a></li>
-    <li><a href="#contacto">Contacto</a></li>
-  </ul>
-  <a href="#contacto" class="nav-cta">Solicitar tour</a>
-</nav>
-
-<section class="hero">
-  <div class="badge">✨ Tecnología 3D Gaussian Splatting</div>
-  <h1>Recorre cualquier propiedad<br><span>desde cualquier lugar</span></h1>
-  <p>Tours virtuales fotorrealistas en 3D. Sin app, sin VR, sin cita. Solo un link.</p>
-  <div class="hero-btns">
-    <button class="btn-primary" onclick="document.getElementById('visor-section').scrollIntoView({behavior:'smooth'})">Ver demo en vivo</button>
-    <a href="#precios" class="btn-secondary">Ver precios</a>
+  <!-- ===== WAVE FUNCTION COLLAPSE LOADER ===== -->
+  <div id="quantum-loader">
+    <div class="wfc-grid" id="wfc-grid"></div>
+    <div class="loader-text">Colapsando realidad cuántica...</div>
   </div>
-</section>
 
-<div class="stats">
-  <div class="stat"><div class="num">3D</div><div class="label">Fotorrealista</div></div>
-  <div class="stat"><div class="num">&lt;5s</div><div class="label">Tiempo de carga</div></div>
-  <div class="stat"><div class="num">100%</div><div class="label">En el navegador</div></div>
-  <div class="stat"><div class="num">∞</div><div class="label">Visitas simultáneas</div></div>
-</div>
-
-<section id="visor-section">
-  <div class="section-label">Demo en vivo</div>
-  <div class="section-title">Pruébalo ahora mismo</div>
-  <div class="section-sub">Carga un archivo .splat y recorre el espacio en 3D</div>
-  <div id="viewer-wrap">
-    <div id="overlay">
-      <div style="font-size:48px">🏠</div>
-      <p>Haz click en el botón para cargar un escaneo 3D real y recorrerlo en tu navegador</p>
-      <button class="btn-upload" onclick="launchViewer()">Abrir visor 3D</button>
-      <span class="hint">Arrastra para rotar · Scroll para zoom · Click derecho para mover</span>
+  <!-- ===== NAVBAR ===== -->
+  <nav>
+    <div class="logo">⬡ VistaReal</div>
+    <div class="nav-links">
+      <a href="#viewer">Demo</a>
+      <a href="#servicios">Servicios</a>
+      <a href="#precios">Precios</a>
+      <a href="#contacto">Contacto</a>
     </div>
-    <iframe id="splat-iframe" style="display:none"
-      src="https://antimatter15.com/splat/?url=https://huggingface.co/datasets/dylanebert/3dgs/resolve/main/kitchen/point_cloud.splat"
-      allow="fullscreen">
-    </iframe>
-  </div>
-</section>
+  </nav>
 
-<section id="servicios">
-  <div class="section-label">Servicios</div>
-  <div class="section-title">¿Para quién es VistaReal?</div>
-  <div class="section-sub">Cualquier espacio, convertido en experiencia 3D</div>
-  <div class="cards">
-    <div class="card"><div class="icon">🏠</div><h3>Agentes inmobiliarios</h3><p>Vende más rápido con tours que los compradores pueden recorrer desde casa.</p></div>
-    <div class="card"><div class="icon">🏨</div><h3>Airbnb & Hoteles</h3><p>Aumenta las reservas mostrando el espacio real antes de que lleguen.</p></div>
-    <div class="card"><div class="icon">🏪</div><h3>Locales comerciales</h3><p>Muestra tu local a inversores o inquilinos sin necesidad de visita.</p></div>
-    <div class="card"><div class="icon">🏛️</div><h3>Museos & Venues</h3><p>Lleva tu espacio a cualquier parte del mundo digitalmente.</p></div>
-  </div>
-</section>
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <h1>Tours Virtuales<br/>en 3D Real</h1>
+    <p>Tecnología de punta para inmobiliarias, hoteles y espacios comerciales. Tus clientes exploran cada rincón antes de visitar.</p>
+    <a href="#viewer" class="btn-primary">Ver Demo en Vivo →</a>
+  </section>
 
-<section id="precios">
-  <div class="section-label">Precios</div>
-  <div class="section-title">Simple y transparente</div>
-  <div class="section-sub">Sin suscripciones. Pagas por escaneo.</div>
-  <div class="pricing-cards">
-    <div class="price-card">
-      <h3>Airbnb</h3>
-      <div class="price">199<span>€</span></div>
-      <ul><li>Hasta 80m²</li><li>Link permanente</li><li>Entrega en 48h</li></ul>
-      <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
+  <!-- ===== VIEWER + QUANTUM TUNNELING ===== -->
+  <section class="viewer-section" id="viewer">
+    <h2>🔬 Explorador 3D Cuántico</h2>
+    <p>Navega entre escenas reales con teletransportación cuántica</p>
+
+    <!-- QUANTUM TUNNELING DOORS -->
+    <div class="scene-selector">
+      <button class="scene-btn active" onclick="tunnelTo('garden.splat', this)">
+        <span>🌿 Jardín</span>
+      </button>
+      <button class="scene-btn" onclick="tunnelTo('truck.splat', this)">
+        <span>🚛 Camión</span>
+      </button>
+      <button class="scene-btn" onclick="tunnelTo('bicycle.splat', this)">
+        <span>🚲 Bicicleta</span>
+      </button>
+      <button class="scene-btn" onclick="tunnelTo('plush.splat', this)">
+        <span>🧸 Peluche</span>
+      </button>
     </div>
-    <div class="price-card featured">
-      <div class="tag">Más popular</div>
-      <h3>Vivienda</h3>
-      <div class="price">299<span>€</span></div>
-      <ul><li>Hasta 150m²</li><li>Link permanente</li><li>Entrega en 48h</li><li>Revisión incluida</li></ul>
-      <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
+
+    <div class="viewer-wrapper" id="viewer-wrapper">
+      <!-- HEISENBERG MODE overlay -->
+      <div class="heisenberg-overlay" id="heisenberg-overlay"></div>
+      <div class="heisenberg-label" id="heisenberg-label">⚛ Modo Heisenberg</div>
+      <div class="tunnel-overlay" id="tunnel-overlay"></div>
+
+      <iframe
+        id="splat-iframe"
+        src="https://antimatter15.com/splat/?url=garden.splat"
+        allowfullscreen
+      ></iframe>
     </div>
-    <div class="price-card">
-      <h3>Local / Venue</h3>
-      <div class="price">499<span>€</span></div>
-      <ul><li>Sin límite de m²</li><li>Link permanente</li><li>Entrega en 72h</li><li>2 revisiones</li></ul>
-      <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
+  </section>
+
+  <!-- ===== QUANTUM SUPERPOSITION VIEW ===== -->
+  <section class="superposition-section" id="superposition">
+    <h2>⚛ Superposición Cuántica</h2>
+    <p>El espacio existe en dos estados simultáneos — desliza para colapsar la realidad</p>
+
+    <div class="superposition-slider-wrap">
+      <div class="state-labels">
+        <span>🌞 Estado Día</span>
+        <span>🌙 Estado Noche</span>
+      </div>
+      <input type="range" id="superposition-slider" min="0" max="100" value="0" oninput="updateSuperposition(this.value)"/>
+
+      <div class="superposition-display">
+        <iframe id="splat-day" src="https://antimatter15.com/splat/?url=garden.splat"></iframe>
+        <iframe id="splat-night" src="https://antimatter15.com/splat/?url=garden.splat"></iframe>
+      </div>
+
+      <div class="superposition-info" id="superposition-info">
+        Estado actual: <strong>Día (100%)</strong> — mueve el slider para superponer realidades
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section id="contacto">
-  <div class="section-label">Contacto</div>
-  <div class="section-title">¿Listo para empezar?</div>
-  <div class="section-sub">Cuéntanos tu proyecto y te respondemos en menos de 24h</div>
-  <form onsubmit="submitForm(event)">
-    <input type="text" placeholder="Tu nombre" required>
-    <input type="email" placeholder="Tu email" required>
-    <input type="tel" placeholder="Tu teléfono (opcional)">
-    <select>
-      <option value="">¿Qué tipo de espacio tienes?</option>
-      <option>Vivienda</option><option>Airbnb</option>
-      <option>Local comercial</option><option>Museo / Venue</option><option>Otro</option>
-    </select>
-    <textarea placeholder="Cuéntanos más sobre tu proyecto..."></textarea>
-    <button type="submit" class="btn-submit">Enviar solicitud →</button>
-    <div id="form-success">✅ ¡Mensaje recibido! Te contactamos en menos de 24h.</div>
-  </form>
-</section>
+  <!-- ===== SERVICES ===== -->
+  <section class="services" id="servicios">
+    <h2>¿Qué ofrecemos?</h2>
+    <p>Soluciones completas para cada tipo de espacio</p>
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">🏠</div>
+        <h3>Inmobiliarias</h3>
+        <p>Tours virtuales de propiedades que aumentan las visitas presenciales calificadas hasta un 40%.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏨</div>
+        <h3>Hoteles & Resorts</h3>
+        <p>Muestra habitaciones, restaurantes y amenidades antes de la reserva. Reduce cancelaciones.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏪</div>
+        <h3>Comercios</h3>
+        <p>Lleva tu tienda física al mundo digital. Clientes exploran y compran desde casa.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏛️</div>
+        <h3>Patrimonio Cultural</h3>
+        <p>Digitaliza museos, iglesias y sitios históricos para preservarlos y hacerlos accesibles.</p>
+      </div>
+    </div>
+  </section>
 
-<footer>
-  <div class="logo">Vista<span>Real</span></div>
-  <p>© 2025 VistaReal. Tours virtuales 3D profesionales.</p>
-</footer>
+  <!-- ===== PRICING ===== -->
+  <section class="pricing" id="precios">
+    <h2>Planes y Precios</h2>
+    <p>Sin contratos. Sin sorpresas.</p>
+    <div class="pricing-cards">
+      <div class="price-card">
+        <h3>Básico</h3>
+        <div class="price">$99<span>/mes</span></div>
+        <ul>
+          <li>1 propiedad activa</li>
+          <li>Hasta 500 visitas/mes</li>
+          <li>Link compartible</li>
+          <li>Soporte por email</li>
+        </ul>
+        <a href="#contacto" class="btn-primary">Empezar</a>
+      </div>
+      <div class="price-card featured">
+        <h3>⭐ Pro</h3>
+        <div class="price">$249<span>/mes</span></div>
+        <ul>
+          <li>5 propiedades activas</li>
+          <li>Visitas ilimitadas</li>
+          <li>Dominio personalizado</li>
+          <li>Analytics avanzado</li>
+          <li>Soporte prioritario</li>
+        </ul>
+        <a href="#contacto" class="btn-primary">Empezar</a>
+      </div>
+      <div class="price-card">
+        <h3>Empresa</h3>
+        <div class="price">$599<span>/mes</span></div>
+        <ul>
+          <li>Propiedades ilimitadas</li>
+          <li>API de integración</li>
+          <li>White-label</li>
+          <li>Gerente de cuenta</li>
+          <li>SLA garantizado</li>
+        </ul>
+        <a href="#contacto" class="btn-primary">Contactar</a>
+      </div>
+    </div>
+  </section>
 
-<script>
-function launchViewer() {
-  document.getElementById('overlay').style.display = 'none';
-  const iframe = document.getElementById('splat-iframe');
-  iframe.style.display = 'block';
-}
+  <!-- ===== CONTACT ===== -->
+  <section class="contact" id="contacto">
+    <h2>¿Listo para empezar?</h2>
+    <p>Escríbenos y te enviamos una demo personalizada de tu espacio en 48 horas.</p>
+    <form class="contact-form" onsubmit="submitForm(event)">
+      <input type="text" placeholder="Tu nombre" required />
+      <input type="email" placeholder="Tu email" required />
+      <input type="text" placeholder="Tipo de negocio (hotel, inmobiliaria...)" />
+      <textarea placeholder="Cuéntanos sobre tu espacio..."></textarea>
+      <button type="submit" class="btn-primary">Enviar mensaje →</button>
+    </form>
+  </section>
 
-function submitForm(e) {
-  e.preventDefault();
-  document.getElementById('form-success').style.display = 'block';
-  e.target.reset();
-}
-</script>
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <p>© 2025 VistaReal · Tours Virtuales 3D · Tecnología Gaussian Splatting</p>
+  </footer>
+
+  <script>
+    // ===== WAVE FUNCTION COLLAPSE LOADING =====
+    const grid = document.getElementById('wfc-grid');
+    const loader = document.getElementById('quantum-loader');
+    const totalCells = 96;
+    const colors = ['#00f0ff','#7b2fff','#ff2f7b','#2fff7b','#fff','#0a0a1a'];
+
+    for (let i = 0; i < totalCells; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'wfc-cell';
+      cell.style.animationDelay = (Math.random() * 1.5) + 's';
+      cell.style.background = colors[Math.floor(Math.random() * colors.length)];
+      grid.appendChild(cell);
+    }
+
+    setTimeout(() => {
+      loader.classList.add('hidden');
+      setTimeout(() => loader.style.display = 'none', 800);
+    }, 2500);
+
+    // ===== HEISENBERG MODE =====
+    let lastX = 0, lastY = 0, heisenbergTimeout;
+    const hOverlay = document.getElementById('heisenberg-overlay');
+    const hLabel = document.getElementById('heisenberg-label');
+
+    document.addEventListener('mousemove', (e) => {
+      const speed = Math.sqrt(
+        Math.pow(e.clientX - lastX, 2) + Math.pow(e.clientY - lastY, 2)
+      );
+      lastX = e.clientX; lastY = e.clientY;
+
+      const blur = Math.min(speed * 0.3, 12);
+      hOverlay.style.backdropFilter = `blur(${blur}px)`;
+
+      if (speed > 15) {
+        hLabel.classList.add('visible');
+        clearTimeout(heisenbergTimeout);
+        heisenbergTimeout = setTimeout(() => {
+          hLabel.classList.remove('visible');
+          hOverlay.style.backdropFilter = 'blur(0px)';
+        }, 1000);
+      }
+    });
+
+    // ===== QUANTUM TUNNELING DOORS =====
+    function tunnelTo(scene, btn) {
+      const iframe = document.getElementById('splat-iframe');
+      const overlay = document.getElementById('tunnel-overlay');
+      const buttons = document.querySelectorAll('.scene-btn');
+
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      overlay.classList.add('active');
+
+      setTimeout(() => {
+        iframe.src = 'https://antimatter15.com/splat/?url=' + scene;
+        setTimeout(() => overlay.classList.remove('active'), 400);
+      }, 300);
+    }
+
+    // ===== QUANTUM SUPERPOSITION VIEW =====
+    function updateSuperposition(value) {
+      const dayFrame = document.getElementById('splat-day');
+      const nightFrame = document.getElementById('splat-night');
+      const info = document.getElementById('superposition-info');
+
+      const dayOpacity = 1 - (value / 100);
+      const nightOpacity = value / 100;
+
+      dayFrame.style.opacity = dayOpacity;
+      nightFrame.style.opacity = nightOpacity;
+
+      const dayPct = Math.round(dayOpacity * 100);
+      const nightPct = Math.round(nightOpacity * 100);
+
+      if (value == 0) {
+        info.innerHTML = 'Estado actual: <strong>Día (100%)</strong> — mueve el slider para superponer realidades';
+      } else if (value == 100) {
+        info.innerHTML = 'Estado actual: <strong>Noche (100%)</strong> — la función de onda ha colapsado';
+      } else {
+        info.innerHTML = `Superposición: <strong>Día ${dayPct}%</strong> + <strong>Noche ${nightPct}%</strong> — estado cuántico activo ⚛`;
+      }
+    }
+
+    // ===== CONTACT FORM =====
+    function submitForm(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      btn.textContent = '✓ Mensaje enviado — te contactamos pronto';
+      btn.style.background = 'linear-gradient(135deg, #2fff7b, #00f0ff)';
+      e.target.reset();
+    }
+  </script>
 </body>
 </html>
