@@ -5,86 +5,363 @@ Copy
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tours Virtuales 3D</title>
+  <title>VistaReal — Tours Virtuales 3D</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0a0a0a; color: white; font-family: sans-serif; overflow: hidden; }
-    #ui {
-      position: fixed; top: 20px; left: 20px;
-      background: rgba(0,0,0,0.6); padding: 16px;
-      border-radius: 12px; backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1); z-index: 10;
+    :root {
+      --purple: #7c3aed;
+      --purple-light: #a78bfa;
+      --dark: #0a0a0f;
+      --card: #13131a;
+      --border: rgba(255,255,255,0.08);
     }
-    #ui h2 { font-size: 15px; margin-bottom: 10px; color: #a78bfa; }
-    #ui p  { font-size: 12px; color: #9ca3af; margin-bottom: 4px; }
-    #upload-btn {
-      position: fixed; bottom: 30px; left: 50%;
-      transform: translateX(-50%);
-      background: #7c3aed; color: white;
-      border: none; padding: 14px 32px;
-      border-radius: 999px; cursor: pointer;
-      font-size: 15px; font-weight: 600;
-      box-shadow: 0 0 30px rgba(124,58,237,0.5); z-index: 10;
+    body { background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; }
+    a { text-decoration: none; color: inherit; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 60px;
+      background: rgba(10,10,15,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
     }
+    .logo { font-size: 22px; font-weight: 700; color: var(--purple-light); }
+    .logo span { color: white; }
+    nav ul { list-style: none; display: flex; gap: 32px; }
+    nav ul a { font-size: 14px; color: rgba(255,255,255,0.6); transition: color 0.2s; }
+    nav ul a:hover { color: white; }
+    .nav-cta {
+      background: var(--purple); color: white;
+      padding: 10px 24px; border-radius: 999px;
+      font-size: 14px; font-weight: 600;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: #6d28d9; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 120px 20px 80px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, transparent 70%);
+    }
+    .badge {
+      display: inline-block; background: rgba(124,58,237,0.2);
+      border: 1px solid rgba(124,58,237,0.4);
+      color: var(--purple-light); padding: 6px 16px;
+      border-radius: 999px; font-size: 13px; margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 72px); font-weight: 800;
+      line-height: 1.1; margin-bottom: 24px; max-width: 800px;
+    }
+    .hero h1 span { color: var(--purple-light); }
+    .hero p {
+      font-size: 18px; color: rgba(255,255,255,0.6);
+      max-width: 520px; line-height: 1.6; margin-bottom: 40px;
+    }
+    .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .btn-primary {
+      background: var(--purple); color: white;
+      padding: 16px 36px; border-radius: 999px;
+      font-size: 16px; font-weight: 600;
+      box-shadow: 0 0 40px rgba(124,58,237,0.4);
+      transition: all 0.2s; cursor: pointer; border: none;
+    }
+    .btn-primary:hover { background: #6d28d9; transform: translateY(-2px); }
+    .btn-secondary {
+      background: transparent; color: white;
+      padding: 16px 36px; border-radius: 999px;
+      font-size: 16px; font-weight: 600;
+      border: 1px solid var(--border); transition: all 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--purple-light); }
+
+    /* STATS */
+    .stats {
+      display: flex; justify-content: center; gap: 60px;
+      flex-wrap: wrap; padding: 60px 20px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .stat { text-align: center; }
+    .stat .num { font-size: 40px; font-weight: 800; color: var(--purple-light); }
+    .stat .label { font-size: 14px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+    /* VISOR */
+    #visor-section {
+      padding: 80px 20px; text-align: center;
+      background: var(--card);
+    }
+    .section-label { color: var(--purple-light); font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+    .section-title { font-size: clamp(28px, 4vw, 48px); font-weight: 800; margin-bottom: 16px; }
+    .section-sub { color: rgba(255,255,255,0.5); font-size: 16px; margin-bottom: 40px; }
+    #viewer-container {
+      width: 100%; max-width: 900px; height: 500px;
+      margin: 0 auto; border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border); position: relative;
+      background: #0a0a0a;
+    }
+    #viewer-container canvas { width: 100% !important; height: 100% !important; }
+    #upload-overlay {
+      position: absolute; inset: 0; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px;
+    }
+    #upload-overlay p { color: rgba(255,255,255,0.4); font-size: 14px; }
     #file-input { display: none; }
-    #loading {
-      display: none; position: fixed;
-      top: 50%; left: 50%; transform: translate(-50%,-50%);
-      background: rgba(0,0,0,0.85); padding: 32px 48px;
-      border-radius: 16px; text-align: center;
-      border: 1px solid rgba(124,58,237,0.4); z-index: 20;
+    .btn-upload {
+      background: var(--purple); color: white;
+      padding: 14px 32px; border-radius: 999px;
+      font-size: 15px; font-weight: 600; cursor: pointer; border: none;
+      box-shadow: 0 0 30px rgba(124,58,237,0.4);
+    }
+    #loading-overlay {
+      display: none; position: absolute; inset: 0;
+      background: rgba(0,0,0,0.8); flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
     }
     .spinner {
       width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
-      border-top-color: #a78bfa; border-radius: 50%;
-      animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+      border-top-color: var(--purple-light); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #hint {
-      position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%,-50%);
-      color: rgba(255,255,255,0.2); font-size: 14px;
-      text-align: center; pointer-events: none;
+
+    /* SERVICIOS */
+    #servicios { padding: 100px 20px; text-align: center; }
+    .cards {
+      display: flex; gap: 24px; justify-content: center;
+      flex-wrap: wrap; margin-top: 48px; max-width: 1000px; margin-left: auto; margin-right: auto;
     }
-    canvas { position: fixed; top: 0; left: 0; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px; flex: 1; min-width: 220px; max-width: 280px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover { border-color: var(--purple); transform: translateY(-4px); }
+    .card .icon { font-size: 36px; margin-bottom: 16px; }
+    .card h3 { font-size: 18px; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+
+    /* PRECIOS */
+    #precios { padding: 100px 20px; text-align: center; background: var(--card); }
+    .pricing-cards {
+      display: flex; gap: 24px; justify-content: center;
+      flex-wrap: wrap; margin-top: 48px;
+    }
+    .price-card {
+      background: var(--dark); border: 1px solid var(--border);
+      border-radius: 16px; padding: 36px 32px; min-width: 220px;
+      transition: all 0.2s; position: relative;
+    }
+    .price-card.featured {
+      border-color: var(--purple);
+      box-shadow: 0 0 40px rgba(124,58,237,0.2);
+    }
+    .price-card .tag {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--purple); color: white; padding: 4px 16px;
+      border-radius: 999px; font-size: 12px; font-weight: 600;
+    }
+    .price-card h3 { font-size: 16px; color: rgba(255,255,255,0.6); margin-bottom: 16px; }
+    .price-card .price { font-size: 48px; font-weight: 800; color: white; }
+    .price-card .price span { font-size: 18px; color: rgba(255,255,255,0.4); }
+    .price-card ul { list-style: none; margin: 24px 0; text-align: left; }
+    .price-card ul li { font-size: 14px; color: rgba(255,255,255,0.6); padding: 6px 0; }
+    .price-card ul li::before { content: "✓ "; color: var(--purple-light); }
+
+    /* CONTACTO */
+    #contacto { padding: 100px 20px; text-align: center; }
+    form {
+      max-width: 520px; margin: 48px auto 0;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    input, textarea, select {
+      background: var(--card); border: 1px solid var(--border);
+      color: white; padding: 14px 18px; border-radius: 10px;
+      font-size: 15px; outline: none; transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--purple); }
+    textarea { resize: vertical; min-height: 120px; }
+    select option { background: var(--card); }
+    .btn-submit {
+      background: var(--purple); color: white;
+      padding: 16px; border-radius: 999px;
+      font-size: 16px; font-weight: 600; cursor: pointer; border: none;
+      transition: all 0.2s;
+    }
+    .btn-submit:hover { background: #6d28d9; }
+    #form-success {
+      display: none; color: var(--purple-light);
+      font-size: 16px; margin-top: 16px;
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 40px 60px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 16px;
+    }
+    footer .logo { font-size: 18px; }
+    footer p { font-size: 13px; color: rgba(255,255,255,0.3); }
   </style>
 </head>
 <body>
-<div id="ui">
-  <h2>🏠 Tour Virtual 3D</h2>
-  <p>🖱️ Arrastrar → rotar</p>
-  <p>🖱️ Scroll → zoom</p>
-  <p>🖱️ Clic derecho → mover</p>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Vista<span>Real</span></div>
+  <ul>
+    <li><a href="#visor-section">Demo</a></li>
+    <li><a href="#servicios">Servicios</a></li>
+    <li><a href="#precios">Precios</a></li>
+    <li><a href="#contacto">Contacto</a></li>
+  </ul>
+  <a href="#contacto" class="nav-cta">Solicitar tour</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">✨ Tecnología 3D Gaussian Splatting</div>
+  <h1>Recorre cualquier propiedad<br><span>desde cualquier lugar</span></h1>
+  <p>Tours virtuales fotorrealistas en 3D. Sin app, sin VR, sin cita. Solo un link.</p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="document.getElementById('visor-section').scrollIntoView({behavior:'smooth'})">Ver demo en vivo</button>
+    <a href="#precios" class="btn-secondary">Ver precios</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><div class="num">3D</div><div class="label">Fotorrealista</div></div>
+  <div class="stat"><div class="num">&lt;5s</div><div class="label">Tiempo de carga</div></div>
+  <div class="stat"><div class="num">100%</div><div class="label">En el navegador</div></div>
+  <div class="stat"><div class="num">∞</div><div class="label">Visitas simultáneas</div></div>
 </div>
-<div id="hint">Carga un archivo .splat para ver tu propiedad</div>
-<div id="loading"><div class="spinner"></div><div>Cargando escaneo 3D...</div></div>
-<input type="file" id="file-input" accept=".splat">
-<button id="upload-btn" onclick="document.getElementById('file-input').click()">📂 Cargar archivo .splat</button>
+
+<!-- VISOR -->
+<section id="visor-section">
+  <div class="section-label">Demo en vivo</div>
+  <div class="section-title">Pruébalo ahora mismo</div>
+  <div class="section-sub">Carga un archivo .splat y recorre el espacio en 3D</div>
+  <div id="viewer-container">
+    <div id="upload-overlay">
+      <p>📂 Carga un escaneo .splat para verlo en 3D</p>
+      <button class="btn-upload" onclick="document.getElementById('file-input').click()">Cargar archivo .splat</button>
+    </div>
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <div>Cargando escaneo 3D...</div>
+    </div>
+  </div>
+  <input type="file" id="file-input" accept=".splat">
+</section>
+
+<!-- SERVICIOS -->
+<section id="servicios">
+  <div class="section-label">Servicios</div>
+  <div class="section-title">¿Para quién es VistaReal?</div>
+  <div class="section-sub">Cualquier espacio, convertido en experiencia 3D</div>
+  <div class="cards">
+    <div class="card"><div class="icon">🏠</div><h3>Agentes inmobiliarios</h3><p>Vende más rápido con tours que los compradores pueden recorrer desde casa.</p></div>
+    <div class="card"><div class="icon">🏨</div><h3>Airbnb & Hoteles</h3><p>Aumenta las reservas mostrando el espacio real antes de que lleguen.</p></div>
+    <div class="card"><div class="icon">🏪</div><h3>Locales comerciales</h3><p>Muestra tu local a inversores o inquilinos sin necesidad de visita.</p></div>
+    <div class="card"><div class="icon">🏛️</div><h3>Museos & Venues</h3><p>Lleva tu espacio a cualquier parte del mundo digitalmente.</p></div>
+  </div>
+</section>
+
+<!-- PRECIOS -->
+<section id="precios">
+  <div class="section-label">Precios</div>
+  <div class="section-title">Simple y transparente</div>
+  <div class="section-sub">Sin suscripciones. Pagas por escaneo.</div>
+  <div class="pricing-cards">
+    <div class="price-card">
+      <h3>Airbnb</h3>
+      <div class="price">199<span>€</span></div>
+      <ul>
+        <li>Hasta 80m²</li>
+        <li>Link permanente</li>
+        <li>Entrega en 48h</li>
+      </ul>
+      <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
+    </div>
+    <div class="price-card featured">
+      <div class="tag">Más popular</div>
+      <h3>Vivienda</h3>
+      <div class="price">299<span>€</span></div>
+      <ul>
+        <li>Hasta 150m²</li>
+        <li>Link permanente</li>
+        <li>Entrega en 48h</li>
+        <li>Revisión incluida</li>
+      </ul>
+      <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
+    </div>
+    <div class="price-card">
+      <h3>Local / Venue</h3>
+      <div class="price">499<span>€</span></div>
+      <ul>
+        <li>Sin límite de m²</li>
+        <li>Link permanente</li>
+        <li>Entrega en 72h</li>
+        <li>2 revisiones</li>
+      </ul>
+      <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section id="contacto">
+  <div class="section-label">Contacto</div>
+  <div class="section-title">¿Listo para empezar?</div>
+  <div class="section-sub">Cuéntanos tu proyecto y te respondemos en menos de 24h</div>
+  <form onsubmit="submitForm(event)">
+    <input type="text" placeholder="Tu nombre" required>
+    <input type="email" placeholder="Tu email" required>
+    <input type="tel" placeholder="Tu teléfono (opcional)">
+    <select>
+      <option value="">¿Qué tipo de espacio tienes?</option>
+      <option>Vivienda</option>
+      <option>Airbnb</option>
+      <option>Local comercial</option>
+      <option>Museo / Venue</option>
+      <option>Otro</option>
+    </select>
+    <textarea placeholder="Cuéntanos más sobre tu proyecto..."></textarea>
+    <button type="submit" class="btn-submit">Enviar solicitud →</button>
+    <div id="form-success">✅ ¡Mensaje recibido! Te contactamos en menos de 24h.</div>
+  </form>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">Vista<span>Real</span></div>
+  <p>© 2025 VistaReal. Tours virtuales 3D profesionales.</p>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 <script>
-// Setup Three.js
+// Three.js viewer inside container
+const container = document.getElementById('viewer-container');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(container.clientWidth, container.clientHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-document.body.appendChild(renderer.domElement);
+container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a0a);
-
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
 camera.position.set(0, 0, 5);
 
-// Orbit controls manual
-let isDragging = false, isRight = false;
-let lastX = 0, lastY = 0;
-let yaw = 0, pitch = 0, radius = 5;
-let targetX = 0, targetY = 0;
+let isDragging = false, isRight = false, lastX = 0, lastY = 0;
+let yaw = 0, pitch = 0, radius = 5, targetX = 0, targetY = 0;
 
-renderer.domElement.addEventListener('mousedown', e => {
-  isDragging = true; isRight = e.button === 2;
-  lastX = e.clientX; lastY = e.clientY;
-});
+renderer.domElement.addEventListener('mousedown', e => { isDragging = true; isRight = e.button === 2; lastX = e.clientX; lastY = e.clientY; });
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('mouseup', () => isDragging = false);
 window.addEventListener('mousemove', e => {
@@ -94,83 +371,67 @@ window.addEventListener('mousemove', e => {
   if (isRight) { targetX -= dx * 0.005 * radius; targetY += dy * 0.005 * radius; }
   else { yaw -= dx * 0.005; pitch -= dy * 0.005; pitch = Math.max(-1.5, Math.min(1.5, pitch)); }
 });
-renderer.domElement.addEventListener('wheel', e => {
-  radius *= 1 + e.deltaY * 0.001;
-  radius = Math.max(0.5, Math.min(100, radius));
-});
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.domElement.addEventListener('wheel', e => { radius *= 1 + e.deltaY * 0.001; radius = Math.max(0.5, Math.min(100, radius)); });
+
+function loadSplat(buffer) {
+  const rowLength = 3*4 + 3*4 + 4 + 4;
+  const vertexCount = Math.floor(buffer.byteLength / rowLength);
+  const data = new DataView(buffer);
+  const positions = new Float32Array(vertexCount * 3);
+  const colors = new Float32Array(vertexCount * 3);
+  for (let i = 0; i < vertexCount; i++) {
+    const o = i * rowLength;
+    positions[i*3]   = data.getFloat32(o,     true);
+    positions[i*3+1] = data.getFloat32(o + 4, true);
+    positions[i*3+2] = data.getFloat32(o + 8, true);
+    colors[i*3]   = data.getUint8(o + 24) / 255;
+    colors[i*3+1] = data.getUint8(o + 25) / 255;
+    colors[i*3+2] = data.getUint8(o + 26) / 255;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+  return new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.02, vertexColors: true }));
+}
+
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const lo = document.getElementById('loading-overlay');
+  lo.style.display = 'flex';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    scene.children.filter(c => c.isPoints).forEach(c => scene.remove(c));
+    const pts = loadSplat(ev.target.result);
+    scene.add(pts);
+    lo.style.display = 'none';
+    document.getElementById('upload-overlay').style.display = 'none';
+  };
+  reader.readAsArrayBuffer(file);
 });
 
-function updateCamera() {
+function animate() {
+  requestAnimationFrame(animate);
   camera.position.set(
     targetX + radius * Math.sin(yaw) * Math.cos(pitch),
     targetY + radius * Math.sin(pitch),
     radius * Math.cos(yaw) * Math.cos(pitch)
   );
   camera.lookAt(targetX, targetY, 0);
-}
-
-// Parse .splat file
-function loadSplat(buffer) {
-  const rowLength = 3*4 + 3*4 + 4 + 4; // xyz + scale + rgba + rotation
-  const vertexCount = Math.floor(buffer.byteLength / rowLength);
-  const data = new DataView(buffer);
-
-  const positions = new Float32Array(vertexCount * 3);
-  const colors = new Float32Array(vertexCount * 3);
-
-  for (let i = 0; i < vertexCount; i++) {
-    const offset = i * rowLength;
-    positions[i*3]   = data.getFloat32(offset,      true);
-    positions[i*3+1] = data.getFloat32(offset + 4,  true);
-    positions[i*3+2] = data.getFloat32(offset + 8,  true);
-    colors[i*3]   = data.getUint8(offset + 24) / 255;
-    colors[i*3+1] = data.getUint8(offset + 25) / 255;
-    colors[i*3+2] = data.getUint8(offset + 26) / 255;
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
-
-  const material = new THREE.PointsMaterial({ size: 0.02, vertexColors: true });
-  return new THREE.Points(geometry, material);
-}
-
-// File input
-document.getElementById('file-input').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('hint').style.display = 'none';
-
-  const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      // Remove previous
-      scene.children.filter(c => c.isPoints).forEach(c => scene.remove(c));
-      const points = loadSplat(ev.target.result);
-      scene.add(points);
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('upload-btn').style.display = 'none';
-    } catch(err) {
-      document.getElementById('loading').style.display = 'none';
-      alert('Error: ' + err.message);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-});
-
-// Animate
-function animate() {
-  requestAnimationFrame(animate);
-  updateCamera();
   renderer.render(scene, camera);
 }
 animate();
+
+window.addEventListener('resize', () => {
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+});
+
+function submitForm(e) {
+  e.preventDefault();
+  document.getElementById('form-success').style.display = 'block';
+  e.target.reset();
+}
 </script>
 </body>
 </html>
