@@ -265,11 +265,28 @@
 
     .heisenberg-label.visible { opacity: 1; }
 
-    #splat-iframe {
+    #splat-canvas {
       width: 100%;
       height: 600px;
-      border: none;
       display: block;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #splat-canvas:active { cursor: grabbing; }
+
+    #viewer-status {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--accent);
+      font-size: 0.95rem;
+      letter-spacing: 2px;
+      text-align: center;
+      pointer-events: none;
+      z-index: 6;
+      text-shadow: 0 0 20px var(--accent);
     }
 
     /* ===== NAVIGATION CONTROLS ===== */
@@ -644,31 +661,28 @@
       <div class="heisenberg-label" id="heisenberg-label">⚛ Modo Heisenberg</div>
       <div class="tunnel-overlay" id="tunnel-overlay"></div>
 
-      <iframe
-        id="splat-iframe"
-        src="https://antimatter15.com/splat/?url=garden.splat"
-        allowfullscreen
-      ></iframe>
+      <canvas id="splat-canvas"></canvas>
+      <div id="viewer-status">⚛ Cargando escena cuántica...</div>
 
       <!-- Controls hint -->
       <div class="controls-hint">
         🖱️ Arrastrar: rotar &nbsp;|&nbsp; Scroll: zoom<br>
-        ⌨️ WASD / flechas: mover
+        🎮 Flechas: mover cámara
       </div>
 
       <!-- Arrow navigation controls -->
       <div class="nav-controls" id="nav-controls">
-        <button class="nav-btn up"    onmousedown="startKey('ArrowUp')"    onmouseup="stopKey()" ontouchstart="startKey('ArrowUp')" ontouchend="stopKey()" title="Arriba">▲</button>
-        <button class="nav-btn left"  onmousedown="startKey('ArrowLeft')"  onmouseup="stopKey()" ontouchstart="startKey('ArrowLeft')" ontouchend="stopKey()" title="Izquierda">◀</button>
-        <button class="nav-btn reset" onmousedown="startKey('r')"          onmouseup="stopKey()" ontouchstart="startKey('r')" ontouchend="stopKey()" title="Reset">⟳</button>
-        <button class="nav-btn right" onmousedown="startKey('ArrowRight')" onmouseup="stopKey()" ontouchstart="startKey('ArrowRight')" ontouchend="stopKey()" title="Derecha">▶</button>
-        <button class="nav-btn down"  onmousedown="startKey('ArrowDown')"  onmouseup="stopKey()" ontouchstart="startKey('ArrowDown')" ontouchend="stopKey()" title="Abajo">▼</button>
+        <button class="nav-btn up"    onmousedown="startMove('up')"    onmouseup="stopMove()" ontouchstart="startMove('up')" ontouchend="stopMove()" title="Arriba">▲</button>
+        <button class="nav-btn left"  onmousedown="startMove('left')"  onmouseup="stopMove()" ontouchstart="startMove('left')" ontouchend="stopMove()" title="Izquierda">◀</button>
+        <button class="nav-btn reset" onclick="resetCamera()" title="Reset">⟳</button>
+        <button class="nav-btn right" onmousedown="startMove('right')" onmouseup="stopMove()" ontouchstart="startMove('right')" ontouchend="stopMove()" title="Derecha">▶</button>
+        <button class="nav-btn down"  onmousedown="startMove('down')"  onmouseup="stopMove()" ontouchstart="startMove('down')" ontouchend="stopMove()" title="Abajo">▼</button>
       </div>
 
       <!-- Zoom controls -->
       <div class="zoom-controls">
-        <button class="zoom-btn" onmousedown="startKey('+')" onmouseup="stopKey()" ontouchstart="startKey('+')" ontouchend="stopKey()" title="Acercar">＋</button>
-        <button class="zoom-btn" onmousedown="startKey('-')" onmouseup="stopKey()" ontouchstart="startKey('-')" ontouchend="stopKey()" title="Alejar">－</button>
+        <button class="zoom-btn" onmousedown="startMove('zoomin')"  onmouseup="stopMove()" ontouchstart="startMove('zoomin')" ontouchend="stopMove()" title="Acercar">＋</button>
+        <button class="zoom-btn" onmousedown="startMove('zoomout')" onmouseup="stopMove()" ontouchstart="startMove('zoomout')" ontouchend="stopMove()" title="Alejar">－</button>
       </div>
     </div>
   </section>
@@ -785,6 +799,8 @@
     <p>© 2025 VistaReal · Tours Virtuales 3D · Tecnología Gaussian Splatting</p>
   </footer>
 
+  <!-- Three.js + Gaussian Splat viewer -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     // ===== WAVE FUNCTION COLLAPSE LOADING =====
     const grid = document.getElementById('wfc-grid');
@@ -815,10 +831,8 @@
         Math.pow(e.clientX - lastX, 2) + Math.pow(e.clientY - lastY, 2)
       );
       lastX = e.clientX; lastY = e.clientY;
-
       const blur = Math.min(speed * 0.3, 12);
       hOverlay.style.backdropFilter = `blur(${blur}px)`;
-
       if (speed > 15) {
         hLabel.classList.add('visible');
         clearTimeout(heisenbergTimeout);
@@ -830,18 +844,21 @@
     });
 
     // ===== QUANTUM TUNNELING DOORS =====
+    const scenes = {
+      'garden.splat': 'https://antimatter15.com/splat/scenes/garden.splat',
+      'truck.splat':  'https://antimatter15.com/splat/scenes/truck.splat',
+      'bicycle.splat':'https://antimatter15.com/splat/scenes/bicycle.splat',
+      'plush.splat':  'https://antimatter15.com/splat/scenes/plush.splat'
+    };
+
     function tunnelTo(scene, btn) {
-      const iframe = document.getElementById('splat-iframe');
       const overlay = document.getElementById('tunnel-overlay');
       const buttons = document.querySelectorAll('.scene-btn');
-
       buttons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-
       overlay.classList.add('active');
-
       setTimeout(() => {
-        iframe.src = 'https://antimatter15.com/splat/?url=' + scene;
+        loadSplatScene(scenes[scene] || scenes['garden.splat']);
         setTimeout(() => overlay.classList.remove('active'), 400);
       }, 300);
     }
@@ -851,16 +868,12 @@
       const dayFrame = document.getElementById('splat-day');
       const nightFrame = document.getElementById('splat-night');
       const info = document.getElementById('superposition-info');
-
       const dayOpacity = 1 - (value / 100);
       const nightOpacity = value / 100;
-
       dayFrame.style.opacity = dayOpacity;
       nightFrame.style.opacity = nightOpacity;
-
       const dayPct = Math.round(dayOpacity * 100);
       const nightPct = Math.round(nightOpacity * 100);
-
       if (value == 0) {
         info.innerHTML = 'Estado actual: <strong>Día (100%)</strong> — mueve el slider para superponer realidades';
       } else if (value == 100) {
@@ -870,71 +883,209 @@
       }
     }
 
-    // ===== NAVIGATION CONTROLS =====
-    let keyInterval = null;
-    const iframe = document.getElementById('splat-iframe');
+    // ===== 3D GAUSSIAN SPLAT VIEWER =====
+    const canvas = document.getElementById('splat-canvas');
+    const statusEl = document.getElementById('viewer-status');
 
-    function fireKey(key) {
-      // Focus iframe first, then dispatch key events to it
-      iframe.focus();
-      const eventOptions = {
-        key: key,
-        code: key === 'ArrowUp' ? 'ArrowUp' :
-              key === 'ArrowDown' ? 'ArrowDown' :
-              key === 'ArrowLeft' ? 'ArrowLeft' :
-              key === 'ArrowRight' ? 'ArrowRight' :
-              key === '+' ? 'Equal' :
-              key === '-' ? 'Minus' :
-              key === 'r' ? 'KeyR' : 'Space',
-        bubbles: true,
-        cancelable: true
-      };
-      try {
-        iframe.contentWindow.dispatchEvent(new KeyboardEvent('keydown', eventOptions));
-        iframe.contentWindow.dispatchEvent(new KeyboardEvent('keyup', eventOptions));
-      } catch(e) {
-        // Cross-origin fallback: simulate mouse drag on the iframe
-        simulateDrag(key);
-      }
+    // Three.js scene setup
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setClearColor(0x0a0a1a, 1);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / 600, 0.1, 1000);
+    camera.position.set(0, 0, 5);
+
+    // Resize handler
+    function resizeRenderer() {
+      const w = canvas.parentElement.clientWidth;
+      renderer.setSize(w, 600);
+      camera.aspect = w / 600;
+      camera.updateProjectionMatrix();
+    }
+    resizeRenderer();
+    window.addEventListener('resize', resizeRenderer);
+
+    // Camera state
+    let camTheta = 0, camPhi = Math.PI / 2, camRadius = 5;
+    let camTarget = new THREE.Vector3(0, 0, 0);
+    let isDragging = false, lastMouseX = 0, lastMouseY = 0;
+
+    function updateCamera() {
+      camera.position.set(
+        camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta),
+        camTarget.y + camRadius * Math.cos(camPhi),
+        camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta)
+      );
+      camera.lookAt(camTarget);
+    }
+    updateCamera();
+
+    // Mouse drag to orbit
+    canvas.addEventListener('mousedown', e => { isDragging = true; lastMouseX = e.clientX; lastMouseY = e.clientY; });
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      lastMouseX = e.clientX; lastMouseY = e.clientY;
+      camTheta -= dx * 0.008;
+      camPhi = Math.max(0.1, Math.min(Math.PI - 0.1, camPhi + dy * 0.008));
+      updateCamera();
+    });
+
+    // Touch drag
+    let lastTouchX = 0, lastTouchY = 0;
+    canvas.addEventListener('touchstart', e => { lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; }, { passive: true });
+    canvas.addEventListener('touchmove', e => {
+      const dx = e.touches[0].clientX - lastTouchX;
+      const dy = e.touches[0].clientY - lastTouchY;
+      lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
+      camTheta -= dx * 0.008;
+      camPhi = Math.max(0.1, Math.min(Math.PI - 0.1, camPhi + dy * 0.008));
+      updateCamera();
+    }, { passive: true });
+
+    // Scroll to zoom
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      camRadius = Math.max(1, Math.min(20, camRadius + e.deltaY * 0.01));
+      updateCamera();
+    }, { passive: false });
+
+    // Keyboard controls
+    const keysDown = {};
+    window.addEventListener('keydown', e => { keysDown[e.key] = true; });
+    window.addEventListener('keyup',   e => { keysDown[e.key] = false; });
+
+    // Button move controls
+    let moveInterval = null;
+    const moveActions = {
+      up:      () => { camPhi = Math.max(0.1, camPhi - 0.04); updateCamera(); },
+      down:    () => { camPhi = Math.min(Math.PI - 0.1, camPhi + 0.04); updateCamera(); },
+      left:    () => { camTheta -= 0.04; updateCamera(); },
+      right:   () => { camTheta += 0.04; updateCamera(); },
+      zoomin:  () => { camRadius = Math.max(1, camRadius - 0.15); updateCamera(); },
+      zoomout: () => { camRadius = Math.min(20, camRadius + 0.15); updateCamera(); }
+    };
+
+    function startMove(dir) {
+      if (moveActions[dir]) { moveActions[dir](); moveInterval = setInterval(moveActions[dir], 60); }
+    }
+    function stopMove() { clearInterval(moveInterval); moveInterval = null; }
+    function resetCamera() {
+      camTheta = 0; camPhi = Math.PI / 2; camRadius = 5;
+      camTarget.set(0, 0, 0);
+      updateCamera();
     }
 
-    function simulateDrag(key) {
-      const rect = iframe.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const step = 18;
-      let dx = 0, dy = 0;
-
-      if (key === 'ArrowUp')    dy = -step;
-      if (key === 'ArrowDown')  dy =  step;
-      if (key === 'ArrowLeft')  dx = -step;
-      if (key === 'ArrowRight') dx =  step;
-
-      if (key === '+') {
-        iframe.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true, cancelable: true }));
-        return;
-      }
-      if (key === '-') {
-        iframe.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
-        return;
-      }
-
-      // Simulate mousedown → mousemove → mouseup on the iframe element
-      const opts = { bubbles: true, cancelable: true };
-      iframe.dispatchEvent(new MouseEvent('mousedown', { ...opts, clientX: cx, clientY: cy, button: 0 }));
-      iframe.dispatchEvent(new MouseEvent('mousemove', { ...opts, clientX: cx + dx, clientY: cy + dy }));
-      iframe.dispatchEvent(new MouseEvent('mouseup',   { ...opts, clientX: cx + dx, clientY: cy + dy }));
+    // Keyboard loop
+    function handleKeys() {
+      if (keysDown['ArrowUp']    || keysDown['w'] || keysDown['W']) moveActions.up();
+      if (keysDown['ArrowDown']  || keysDown['s'] || keysDown['S']) moveActions.down();
+      if (keysDown['ArrowLeft']  || keysDown['a'] || keysDown['A']) moveActions.left();
+      if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) moveActions.right();
+      if (keysDown['+'] || keysDown['=']) moveActions.zoomin();
+      if (keysDown['-'])                  moveActions.zoomout();
     }
 
-    function startKey(key) {
-      fireKey(key);
-      keyInterval = setInterval(() => fireKey(key), 80);
+    // Current point cloud
+    let currentPoints = null;
+
+    function loadSplatScene(url) {
+      statusEl.style.display = 'block';
+      statusEl.textContent = '⚛ Cargando escena...';
+
+      // Remove old points
+      if (currentPoints) { scene.remove(currentPoints); currentPoints.geometry.dispose(); currentPoints.material.dispose(); }
+
+      // Show placeholder while loading
+      const geo = new THREE.SphereGeometry(1.5, 32, 32);
+      const mat = new THREE.PointsMaterial({ color: 0x00f0ff, size: 0.04, transparent: true, opacity: 0.6 });
+      const pts = new THREE.Points(geo, mat);
+      scene.add(pts);
+      currentPoints = pts;
+
+      // Fetch and parse .splat file
+      fetch(url)
+        .then(r => {
+          if (!r.ok) throw new Error('No se pudo cargar: ' + r.status);
+          return r.arrayBuffer();
+        })
+        .then(buffer => {
+          scene.remove(currentPoints);
+          currentPoints.geometry.dispose();
+          currentPoints.material.dispose();
+
+          const data = new DataView(buffer);
+          const rowSize = 32; // 3 pos (f32) + 3 scale (f32) + 4 rgba (u8) + 4 rot (u8) = 32 bytes
+          const count = Math.floor(buffer.byteLength / rowSize);
+
+          const positions = new Float32Array(count * 3);
+          const colorsArr = new Float32Array(count * 3);
+          const sizes     = new Float32Array(count);
+
+          for (let i = 0; i < count; i++) {
+            const base = i * rowSize;
+            positions[i*3]   = data.getFloat32(base,      true);
+            positions[i*3+1] = data.getFloat32(base + 4,  true);
+            positions[i*3+2] = data.getFloat32(base + 8,  true);
+            const sx = Math.exp(data.getFloat32(base + 12, true));
+            const sy = Math.exp(data.getFloat32(base + 16, true));
+            const sz = Math.exp(data.getFloat32(base + 20, true));
+            sizes[i] = Math.max(sx, sy, sz) * 0.5;
+            colorsArr[i*3]   = data.getUint8(base + 24) / 255;
+            colorsArr[i*3+1] = data.getUint8(base + 25) / 255;
+            colorsArr[i*3+2] = data.getUint8(base + 26) / 255;
+          }
+
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+          geometry.setAttribute('color',    new THREE.BufferAttribute(colorsArr, 3));
+          geometry.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
+
+          const material = new THREE.PointsMaterial({
+            size: 0.035,
+            vertexColors: true,
+            sizeAttenuation: true,
+            transparent: true,
+            opacity: 0.92,
+            depthWrite: false
+          });
+
+          currentPoints = new THREE.Points(geometry, material);
+          // Center the model
+          geometry.computeBoundingBox();
+          const center = new THREE.Vector3();
+          geometry.boundingBox.getCenter(center);
+          currentPoints.position.sub(center);
+          scene.add(currentPoints);
+
+          // Auto-fit camera
+          const size = new THREE.Vector3();
+          geometry.boundingBox.getSize(size);
+          camRadius = Math.max(size.x, size.y, size.z) * 1.2;
+          camTarget.set(0, 0, 0);
+          updateCamera();
+
+          statusEl.style.display = 'none';
+        })
+        .catch(err => {
+          statusEl.textContent = '⚠️ Error al cargar. Intenta otra escena.';
+          console.error(err);
+        });
     }
 
-    function stopKey() {
-      clearInterval(keyInterval);
-      keyInterval = null;
+    // Load default scene
+    loadSplatScene(scenes['garden.splat']);
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      handleKeys();
+      renderer.render(scene, camera);
     }
+    animate();
 
     // ===== CONTACT FORM =====
     function submitForm(e) {
