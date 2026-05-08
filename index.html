@@ -15,7 +15,7 @@ Copy
       --card: #13131a;
       --border: rgba(255,255,255,0.08);
     }
-    body { background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; }
+    body { background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
     a { text-decoration: none; color: inherit; }
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -77,38 +77,28 @@ Copy
     .section-label { color: var(--purple-light); font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
     .section-title { font-size: clamp(28px, 4vw, 48px); font-weight: 800; margin-bottom: 16px; }
     .section-sub { color: rgba(255,255,255,0.5); font-size: 16px; margin-bottom: 40px; }
-    #viewer-container {
-      width: 100%; max-width: 900px; height: 500px;
+    #viewer-wrap {
+      width: 100%; max-width: 900px; height: 520px;
       margin: 0 auto; border-radius: 16px; overflow: hidden;
       border: 1px solid var(--border); position: relative;
       background: #0a0a0a;
     }
-    #viewer-container canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
-    #upload-overlay {
+    #viewer-wrap iframe {
+      width: 100%; height: 100%; border: none;
+    }
+    #overlay {
       position: absolute; inset: 0; display: flex;
       flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px; z-index: 5;
+      gap: 16px; z-index: 5; background: #0a0a0a;
     }
-    #upload-overlay p { color: rgba(255,255,255,0.4); font-size: 14px; }
-    #file-input { display: none; }
+    #overlay p { color: rgba(255,255,255,0.5); font-size: 14px; max-width: 340px; line-height: 1.6; }
     .btn-upload {
       background: var(--purple); color: white;
       padding: 14px 32px; border-radius: 999px;
       font-size: 15px; font-weight: 600; cursor: pointer; border: none;
       box-shadow: 0 0 30px rgba(124,58,237,0.4);
     }
-    #loading-overlay {
-      display: none; position: absolute; inset: 0;
-      background: rgba(0,0,0,0.8);
-      flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px; z-index: 10;
-    }
-    .spinner {
-      width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
-      border-top-color: var(--purple-light); border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .hint { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 8px; }
     #servicios { padding: 100px 20px; text-align: center; }
     .cards { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 48px; max-width: 1000px; margin-left: auto; margin-right: auto; }
     .card {
@@ -196,17 +186,18 @@ Copy
   <div class="section-label">Demo en vivo</div>
   <div class="section-title">Pruébalo ahora mismo</div>
   <div class="section-sub">Carga un archivo .splat y recorre el espacio en 3D</div>
-  <div id="viewer-container">
-    <div id="upload-overlay">
-      <p>📂 Carga un escaneo .splat para verlo en 3D</p>
-      <button class="btn-upload" onclick="document.getElementById('file-input').click()">Cargar archivo .splat</button>
+  <div id="viewer-wrap">
+    <div id="overlay">
+      <div style="font-size:48px">🏠</div>
+      <p>Haz click en el botón para cargar un escaneo 3D real y recorrerlo en tu navegador</p>
+      <button class="btn-upload" onclick="launchViewer()">Abrir visor 3D</button>
+      <span class="hint">Arrastra para rotar · Scroll para zoom · Click derecho para mover</span>
     </div>
-    <div id="loading-overlay">
-      <div class="spinner"></div>
-      <div>Cargando escaneo 3D...</div>
-    </div>
+    <iframe id="splat-iframe" style="display:none"
+      src="https://antimatter15.com/splat/?url=https://huggingface.co/datasets/dylanebert/3dgs/resolve/main/kitchen/point_cloud.splat"
+      allow="fullscreen">
+    </iframe>
   </div>
-  <input type="file" id="file-input" accept=".splat">
 </section>
 
 <section id="servicios">
@@ -272,90 +263,12 @@ Copy
   <p>© 2025 VistaReal. Tours virtuales 3D profesionales.</p>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 <script>
-const container = document.getElementById('viewer-container');
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-container.appendChild(renderer.domElement);
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a0a);
-const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
-camera.position.set(0, 0, 5);
-
-let isDragging = false, isRight = false, lastX = 0, lastY = 0;
-let yaw = 0, pitch = 0, radius = 5, targetX = 0, targetY = 0;
-
-renderer.domElement.addEventListener('mousedown', e => { isDragging = true; isRight = e.button === 2; lastX = e.clientX; lastY = e.clientY; });
-renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
-window.addEventListener('mouseup', () => isDragging = false);
-window.addEventListener('mousemove', e => {
-  if (!isDragging) return;
-  const dx = e.clientX - lastX, dy = e.clientY - lastY;
-  lastX = e.clientX; lastY = e.clientY;
-  if (isRight) { targetX -= dx * 0.005 * radius; targetY += dy * 0.005 * radius; }
-  else { yaw -= dx * 0.005; pitch -= dy * 0.005; pitch = Math.max(-1.5, Math.min(1.5, pitch)); }
-});
-renderer.domElement.addEventListener('wheel', e => {
-  radius *= 1 + e.deltaY * 0.001;
-  radius = Math.max(0.5, Math.min(100, radius));
-});
-
-function loadSplat(buffer) {
-  const rowLength = 3*4 + 3*4 + 4 + 4;
-  const vertexCount = Math.floor(buffer.byteLength / rowLength);
-  const data = new DataView(buffer);
-  const positions = new Float32Array(vertexCount * 3);
-  const colors = new Float32Array(vertexCount * 3);
-  for (let i = 0; i < vertexCount; i++) {
-    const o = i * rowLength;
-    positions[i*3]   =  data.getFloat32(o,     true);
-    positions[i*3+1] = -data.getFloat32(o + 4, true); // flip Y para orientación correcta
-    positions[i*3+2] = -data.getFloat32(o + 8, true); // flip Z para orientación correcta
-    colors[i*3]   = data.getUint8(o + 24) / 255;
-    colors[i*3+1] = data.getUint8(o + 25) / 255;
-    colors[i*3+2] = data.getUint8(o + 26) / 255;
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
-  return new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.005, vertexColors: true }));
+function launchViewer() {
+  document.getElementById('overlay').style.display = 'none';
+  const iframe = document.getElementById('splat-iframe');
+  iframe.style.display = 'block';
 }
-
-document.getElementById('file-input').addEventListener('change', e => {
-  const file = e.target.files[0]; if (!file) return;
-  const lo = document.getElementById('loading-overlay');
-  lo.style.display = 'flex';
-  const reader = new FileReader();
-  reader.onload = ev => {
-    scene.children.filter(c => c.isPoints).forEach(c => scene.remove(c));
-    const pts = loadSplat(ev.target.result);
-    scene.add(pts);
-    lo.style.display = 'none';
-    document.getElementById('upload-overlay').style.display = 'none';
-  };
-  reader.readAsArrayBuffer(file);
-});
-
-function animate() {
-  requestAnimationFrame(animate);
-  camera.position.set(
-    targetX + radius * Math.sin(yaw) * Math.cos(pitch),
-    targetY + radius * Math.sin(pitch),
-    radius * Math.cos(yaw) * Math.cos(pitch)
-  );
-  camera.lookAt(targetX, targetY, 0);
-  renderer.render(scene, camera);
-}
-animate();
-
-window.addEventListener('resize', () => {
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  camera.aspect = container.clientWidth / container.clientHeight;
-  camera.updateProjectionMatrix();
-});
 
 function submitForm(e) {
   e.preventDefault();
