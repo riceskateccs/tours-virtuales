@@ -17,8 +17,6 @@ Copy
     }
     body { background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; }
     a { text-decoration: none; color: inherit; }
-
-    /* NAV */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; justify-content: space-between; align-items: center;
@@ -35,11 +33,7 @@ Copy
       background: var(--purple); color: white;
       padding: 10px 24px; border-radius: 999px;
       font-size: 14px; font-weight: 600;
-      transition: background 0.2s;
     }
-    .nav-cta:hover { background: #6d28d9; }
-
-    /* HERO */
     .hero {
       min-height: 100vh; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
@@ -52,15 +46,9 @@ Copy
       color: var(--purple-light); padding: 6px 16px;
       border-radius: 999px; font-size: 13px; margin-bottom: 24px;
     }
-    .hero h1 {
-      font-size: clamp(36px, 6vw, 72px); font-weight: 800;
-      line-height: 1.1; margin-bottom: 24px; max-width: 800px;
-    }
+    .hero h1 { font-size: clamp(36px, 6vw, 72px); font-weight: 800; line-height: 1.1; margin-bottom: 24px; max-width: 800px; }
     .hero h1 span { color: var(--purple-light); }
-    .hero p {
-      font-size: 18px; color: rgba(255,255,255,0.6);
-      max-width: 520px; line-height: 1.6; margin-bottom: 40px;
-    }
+    .hero p { font-size: 18px; color: rgba(255,255,255,0.6); max-width: 520px; line-height: 1.6; margin-bottom: 40px; }
     .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
     .btn-primary {
       background: var(--purple); color: white;
@@ -76,9 +64,6 @@ Copy
       font-size: 16px; font-weight: 600;
       border: 1px solid var(--border); transition: all 0.2s;
     }
-    .btn-secondary:hover { border-color: var(--purple-light); }
-
-    /* STATS */
     .stats {
       display: flex; justify-content: center; gap: 60px;
       flex-wrap: wrap; padding: 60px 20px;
@@ -88,12 +73,7 @@ Copy
     .stat { text-align: center; }
     .stat .num { font-size: 40px; font-weight: 800; color: var(--purple-light); }
     .stat .label { font-size: 14px; color: rgba(255,255,255,0.5); margin-top: 4px; }
-
-    /* VISOR */
-    #visor-section {
-      padding: 80px 20px; text-align: center;
-      background: var(--card);
-    }
+    #visor-section { padding: 80px 20px; text-align: center; background: var(--card); }
     .section-label { color: var(--purple-light); font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
     .section-title { font-size: clamp(28px, 4vw, 48px); font-weight: 800; margin-bottom: 16px; }
     .section-sub { color: rgba(255,255,255,0.5); font-size: 16px; margin-bottom: 40px; }
@@ -103,11 +83,11 @@ Copy
       border: 1px solid var(--border); position: relative;
       background: #0a0a0a;
     }
-    #viewer-container canvas { width: 100% !important; height: 100% !important; }
+    #viewer-container canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
     #upload-overlay {
       position: absolute; inset: 0; display: flex;
       flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px;
+      gap: 16px; z-index: 5;
     }
     #upload-overlay p { color: rgba(255,255,255,0.4); font-size: 14px; }
     #file-input { display: none; }
@@ -119,8 +99,9 @@ Copy
     }
     #loading-overlay {
       display: none; position: absolute; inset: 0;
-      background: rgba(0,0,0,0.8); flex-direction: column;
-      align-items: center; justify-content: center; gap: 16px;
+      background: rgba(0,0,0,0.8);
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; z-index: 10;
     }
     .spinner {
       width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
@@ -128,13 +109,8 @@ Copy
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* SERVICIOS */
     #servicios { padding: 100px 20px; text-align: center; }
-    .cards {
-      display: flex; gap: 24px; justify-content: center;
-      flex-wrap: wrap; margin-top: 48px; max-width: 1000px; margin-left: auto; margin-right: auto;
-    }
+    .cards { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 48px; max-width: 1000px; margin-left: auto; margin-right: auto; }
     .card {
       background: var(--card); border: 1px solid var(--border);
       border-radius: 16px; padding: 32px; flex: 1; min-width: 220px; max-width: 280px;
@@ -144,45 +120,31 @@ Copy
     .card .icon { font-size: 36px; margin-bottom: 16px; }
     .card h3 { font-size: 18px; margin-bottom: 8px; }
     .card p { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; }
-
-    /* PRECIOS */
     #precios { padding: 100px 20px; text-align: center; background: var(--card); }
-    .pricing-cards {
-      display: flex; gap: 24px; justify-content: center;
-      flex-wrap: wrap; margin-top: 48px;
-    }
+    .pricing-cards { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 48px; }
     .price-card {
       background: var(--dark); border: 1px solid var(--border);
       border-radius: 16px; padding: 36px 32px; min-width: 220px;
       transition: all 0.2s; position: relative;
     }
-    .price-card.featured {
-      border-color: var(--purple);
-      box-shadow: 0 0 40px rgba(124,58,237,0.2);
-    }
+    .price-card.featured { border-color: var(--purple); box-shadow: 0 0 40px rgba(124,58,237,0.2); }
     .price-card .tag {
       position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
       background: var(--purple); color: white; padding: 4px 16px;
       border-radius: 999px; font-size: 12px; font-weight: 600;
     }
     .price-card h3 { font-size: 16px; color: rgba(255,255,255,0.6); margin-bottom: 16px; }
-    .price-card .price { font-size: 48px; font-weight: 800; color: white; }
+    .price-card .price { font-size: 48px; font-weight: 800; }
     .price-card .price span { font-size: 18px; color: rgba(255,255,255,0.4); }
     .price-card ul { list-style: none; margin: 24px 0; text-align: left; }
     .price-card ul li { font-size: 14px; color: rgba(255,255,255,0.6); padding: 6px 0; }
     .price-card ul li::before { content: "✓ "; color: var(--purple-light); }
-
-    /* CONTACTO */
     #contacto { padding: 100px 20px; text-align: center; }
-    form {
-      max-width: 520px; margin: 48px auto 0;
-      display: flex; flex-direction: column; gap: 16px;
-    }
+    form { max-width: 520px; margin: 48px auto 0; display: flex; flex-direction: column; gap: 16px; }
     input, textarea, select {
       background: var(--card); border: 1px solid var(--border);
       color: white; padding: 14px 18px; border-radius: 10px;
-      font-size: 15px; outline: none; transition: border-color 0.2s;
-      font-family: inherit;
+      font-size: 15px; outline: none; transition: border-color 0.2s; font-family: inherit;
     }
     input:focus, textarea:focus, select:focus { border-color: var(--purple); }
     textarea { resize: vertical; min-height: 120px; }
@@ -191,27 +153,17 @@ Copy
       background: var(--purple); color: white;
       padding: 16px; border-radius: 999px;
       font-size: 16px; font-weight: 600; cursor: pointer; border: none;
-      transition: all 0.2s;
     }
-    .btn-submit:hover { background: #6d28d9; }
-    #form-success {
-      display: none; color: var(--purple-light);
-      font-size: 16px; margin-top: 16px;
-    }
-
-    /* FOOTER */
+    #form-success { display: none; color: var(--purple-light); font-size: 16px; margin-top: 16px; }
     footer {
       padding: 40px 60px; border-top: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center;
-      flex-wrap: wrap; gap: 16px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
     }
-    footer .logo { font-size: 18px; }
     footer p { font-size: 13px; color: rgba(255,255,255,0.3); }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <div class="logo">Vista<span>Real</span></div>
   <ul>
@@ -223,7 +175,6 @@ Copy
   <a href="#contacto" class="nav-cta">Solicitar tour</a>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
   <div class="badge">✨ Tecnología 3D Gaussian Splatting</div>
   <h1>Recorre cualquier propiedad<br><span>desde cualquier lugar</span></h1>
@@ -234,7 +185,6 @@ Copy
   </div>
 </section>
 
-<!-- STATS -->
 <div class="stats">
   <div class="stat"><div class="num">3D</div><div class="label">Fotorrealista</div></div>
   <div class="stat"><div class="num">&lt;5s</div><div class="label">Tiempo de carga</div></div>
@@ -242,7 +192,6 @@ Copy
   <div class="stat"><div class="num">∞</div><div class="label">Visitas simultáneas</div></div>
 </div>
 
-<!-- VISOR -->
 <section id="visor-section">
   <div class="section-label">Demo en vivo</div>
   <div class="section-title">Pruébalo ahora mismo</div>
@@ -260,7 +209,6 @@ Copy
   <input type="file" id="file-input" accept=".splat">
 </section>
 
-<!-- SERVICIOS -->
 <section id="servicios">
   <div class="section-label">Servicios</div>
   <div class="section-title">¿Para quién es VistaReal?</div>
@@ -273,7 +221,6 @@ Copy
   </div>
 </section>
 
-<!-- PRECIOS -->
 <section id="precios">
   <div class="section-label">Precios</div>
   <div class="section-title">Simple y transparente</div>
@@ -282,40 +229,25 @@ Copy
     <div class="price-card">
       <h3>Airbnb</h3>
       <div class="price">199<span>€</span></div>
-      <ul>
-        <li>Hasta 80m²</li>
-        <li>Link permanente</li>
-        <li>Entrega en 48h</li>
-      </ul>
+      <ul><li>Hasta 80m²</li><li>Link permanente</li><li>Entrega en 48h</li></ul>
       <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
     </div>
     <div class="price-card featured">
       <div class="tag">Más popular</div>
       <h3>Vivienda</h3>
       <div class="price">299<span>€</span></div>
-      <ul>
-        <li>Hasta 150m²</li>
-        <li>Link permanente</li>
-        <li>Entrega en 48h</li>
-        <li>Revisión incluida</li>
-      </ul>
+      <ul><li>Hasta 150m²</li><li>Link permanente</li><li>Entrega en 48h</li><li>Revisión incluida</li></ul>
       <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
     </div>
     <div class="price-card">
       <h3>Local / Venue</h3>
       <div class="price">499<span>€</span></div>
-      <ul>
-        <li>Sin límite de m²</li>
-        <li>Link permanente</li>
-        <li>Entrega en 72h</li>
-        <li>2 revisiones</li>
-      </ul>
+      <ul><li>Sin límite de m²</li><li>Link permanente</li><li>Entrega en 72h</li><li>2 revisiones</li></ul>
       <a href="#contacto"><button class="btn-primary" style="width:100%;padding:12px">Solicitar</button></a>
     </div>
   </div>
 </section>
 
-<!-- CONTACTO -->
 <section id="contacto">
   <div class="section-label">Contacto</div>
   <div class="section-title">¿Listo para empezar?</div>
@@ -326,11 +258,8 @@ Copy
     <input type="tel" placeholder="Tu teléfono (opcional)">
     <select>
       <option value="">¿Qué tipo de espacio tienes?</option>
-      <option>Vivienda</option>
-      <option>Airbnb</option>
-      <option>Local comercial</option>
-      <option>Museo / Venue</option>
-      <option>Otro</option>
+      <option>Vivienda</option><option>Airbnb</option>
+      <option>Local comercial</option><option>Museo / Venue</option><option>Otro</option>
     </select>
     <textarea placeholder="Cuéntanos más sobre tu proyecto..."></textarea>
     <button type="submit" class="btn-submit">Enviar solicitud →</button>
@@ -338,7 +267,6 @@ Copy
   </form>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <div class="logo">Vista<span>Real</span></div>
   <p>© 2025 VistaReal. Tours virtuales 3D profesionales.</p>
@@ -346,7 +274,6 @@ Copy
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 <script>
-// Three.js viewer inside container
 const container = document.getElementById('viewer-container');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(container.clientWidth, container.clientHeight);
@@ -371,7 +298,10 @@ window.addEventListener('mousemove', e => {
   if (isRight) { targetX -= dx * 0.005 * radius; targetY += dy * 0.005 * radius; }
   else { yaw -= dx * 0.005; pitch -= dy * 0.005; pitch = Math.max(-1.5, Math.min(1.5, pitch)); }
 });
-renderer.domElement.addEventListener('wheel', e => { radius *= 1 + e.deltaY * 0.001; radius = Math.max(0.5, Math.min(100, radius)); });
+renderer.domElement.addEventListener('wheel', e => {
+  radius *= 1 + e.deltaY * 0.001;
+  radius = Math.max(0.5, Math.min(100, radius));
+});
 
 function loadSplat(buffer) {
   const rowLength = 3*4 + 3*4 + 4 + 4;
@@ -381,9 +311,9 @@ function loadSplat(buffer) {
   const colors = new Float32Array(vertexCount * 3);
   for (let i = 0; i < vertexCount; i++) {
     const o = i * rowLength;
-    positions[i*3]   = data.getFloat32(o,     true);
-    positions[i*3+1] = data.getFloat32(o + 4, true);
-    positions[i*3+2] = data.getFloat32(o + 8, true);
+    positions[i*3]   =  data.getFloat32(o,     true);
+    positions[i*3+1] = -data.getFloat32(o + 4, true); // flip Y para orientación correcta
+    positions[i*3+2] = -data.getFloat32(o + 8, true); // flip Z para orientación correcta
     colors[i*3]   = data.getUint8(o + 24) / 255;
     colors[i*3+1] = data.getUint8(o + 25) / 255;
     colors[i*3+2] = data.getUint8(o + 26) / 255;
@@ -391,7 +321,7 @@ function loadSplat(buffer) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
-  return new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.02, vertexColors: true }));
+  return new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.005, vertexColors: true }));
 }
 
 document.getElementById('file-input').addEventListener('change', e => {
