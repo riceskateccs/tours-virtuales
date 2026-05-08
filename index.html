@@ -9,7 +9,6 @@ Copy
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0a0a0a; color: white; font-family: sans-serif; overflow: hidden; }
-    canvas { width: 100vw !important; height: 100vh !important; display: block; }
     #ui {
       position: fixed; top: 20px; left: 20px;
       background: rgba(0,0,0,0.6); padding: 16px;
@@ -25,10 +24,8 @@ Copy
       border: none; padding: 14px 32px;
       border-radius: 999px; cursor: pointer;
       font-size: 15px; font-weight: 600;
-      box-shadow: 0 0 30px rgba(124,58,237,0.5);
-      z-index: 10;
+      box-shadow: 0 0 30px rgba(124,58,237,0.5); z-index: 10;
     }
-    #upload-btn:hover { background: #6d28d9; }
     #file-input { display: none; }
     #loading {
       display: none; position: fixed;
@@ -47,64 +44,133 @@ Copy
       position: fixed; top: 50%; left: 50%;
       transform: translate(-50%,-50%);
       color: rgba(255,255,255,0.2); font-size: 14px;
-      text-align: center; pointer-events: none; z-index: 5;
+      text-align: center; pointer-events: none;
     }
+    canvas { position: fixed; top: 0; left: 0; }
   </style>
 </head>
 <body>
-
 <div id="ui">
   <h2>🏠 Tour Virtual 3D</h2>
   <p>🖱️ Arrastrar → rotar</p>
   <p>🖱️ Scroll → zoom</p>
   <p>🖱️ Clic derecho → mover</p>
 </div>
-
 <div id="hint">Carga un archivo .splat para ver tu propiedad</div>
+<div id="loading"><div class="spinner"></div><div>Cargando escaneo 3D...</div></div>
+<input type="file" id="file-input" accept=".splat">
+<button id="upload-btn" onclick="document.getElementById('file-input').click()">📂 Cargar archivo .splat</button>
 
-<div id="loading">
-  <div class="spinner"></div>
-  <div>Cargando escaneo 3D...</div>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+<script>
+// Setup Three.js
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
 
-<input type="file" id="file-input" accept=".splat,.ply">
-<button id="upload-btn" onclick="document.getElementById('file-input').click()">
-  📂 Cargar archivo .splat
-</button>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0a);
 
-<script type="module">
-import * as GaussianSplats3D from 'https://cdn.jsdelivr.net/npm/@mkkellogg/gaussian-splats-3d@0.4.1/build/gaussian-splats-3d.module.js';
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 5);
 
-const viewer = new GaussianSplats3D.Viewer({
-  cameraUp: [0, -1, 0],
-  initialCameraPosition: [0, 0, 5],
-  initialCameraLookAt: [0, 0, 0],
-  rootElement: document.body,
-  selfDrivenMode: true
+// Orbit controls manual
+let isDragging = false, isRight = false;
+let lastX = 0, lastY = 0;
+let yaw = 0, pitch = 0, radius = 5;
+let targetX = 0, targetY = 0;
+
+renderer.domElement.addEventListener('mousedown', e => {
+  isDragging = true; isRight = e.button === 2;
+  lastX = e.clientX; lastY = e.clientY;
+});
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  if (isRight) { targetX -= dx * 0.005 * radius; targetY += dy * 0.005 * radius; }
+  else { yaw -= dx * 0.005; pitch -= dy * 0.005; pitch = Math.max(-1.5, Math.min(1.5, pitch)); }
+});
+renderer.domElement.addEventListener('wheel', e => {
+  radius *= 1 + e.deltaY * 0.001;
+  radius = Math.max(0.5, Math.min(100, radius));
+});
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-document.getElementById('file-input').addEventListener('change', async (e) => {
+function updateCamera() {
+  camera.position.set(
+    targetX + radius * Math.sin(yaw) * Math.cos(pitch),
+    targetY + radius * Math.sin(pitch),
+    radius * Math.cos(yaw) * Math.cos(pitch)
+  );
+  camera.lookAt(targetX, targetY, 0);
+}
+
+// Parse .splat file
+function loadSplat(buffer) {
+  const rowLength = 3*4 + 3*4 + 4 + 4; // xyz + scale + rgba + rotation
+  const vertexCount = Math.floor(buffer.byteLength / rowLength);
+  const data = new DataView(buffer);
+
+  const positions = new Float32Array(vertexCount * 3);
+  const colors = new Float32Array(vertexCount * 3);
+
+  for (let i = 0; i < vertexCount; i++) {
+    const offset = i * rowLength;
+    positions[i*3]   = data.getFloat32(offset,      true);
+    positions[i*3+1] = data.getFloat32(offset + 4,  true);
+    positions[i*3+2] = data.getFloat32(offset + 8,  true);
+    colors[i*3]   = data.getUint8(offset + 24) / 255;
+    colors[i*3+1] = data.getUint8(offset + 25) / 255;
+    colors[i*3+2] = data.getUint8(offset + 26) / 255;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+
+  const material = new THREE.PointsMaterial({ size: 0.02, vertexColors: true });
+  return new THREE.Points(geometry, material);
+}
+
+// File input
+document.getElementById('file-input').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
-
   document.getElementById('loading').style.display = 'block';
   document.getElementById('hint').style.display = 'none';
 
-  const url = URL.createObjectURL(file);
-
-  try {
-    await viewer.addSplatScene(url, {
-      splatAlphaRemovalThreshold: 5,
-      showLoadingUI: false
-    });
-    viewer.start();
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('upload-btn').style.display = 'none';
-  } catch(err) {
-    document.getElementById('loading').style.display = 'none';
-    alert('Error: ' + err.message);
-  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      // Remove previous
+      scene.children.filter(c => c.isPoints).forEach(c => scene.remove(c));
+      const points = loadSplat(ev.target.result);
+      scene.add(points);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('upload-btn').style.display = 'none';
+    } catch(err) {
+      document.getElementById('loading').style.display = 'none';
+      alert('Error: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
 });
+
+// Animate
+function animate() {
+  requestAnimationFrame(animate);
+  updateCamera();
+  renderer.render(scene, camera);
+}
+animate();
 </script>
 </body>
 </html>
